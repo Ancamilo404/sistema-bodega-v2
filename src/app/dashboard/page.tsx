@@ -46,7 +46,7 @@ export default function DashboardMenu() {
     // actualizar fecha/hora cada minuto
     const intervalo = setInterval(() => {
       setFechaHora(new Date());
-    }, 60000);
+    }, 600000);
     return () => clearInterval(intervalo);
   }, [router]);
 
