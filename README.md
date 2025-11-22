@@ -7,8 +7,7 @@ Construido con **Next.js, Prisma, Supabase y TailwindCSS**.
 
 ## 🚀 Demo en Producción
 
-👉 [Ver demo en Vercel](https://TU-PROYECTO.vercel.app)
-
+👉 [Ver demo en Vercel](https://sistema-bodega-v1.vercel.app)
 Credenciales de prueba:
 
 - **Admin**
@@ -38,6 +37,7 @@ Credenciales de prueba:
    ```bash
    git  https://github.com/Ancamilo404/sistema-bodega-v1
    cd app-beta-5
+   ```
 
 comando para intalar dependencias
 npm install @dependencia
@@ -48,7 +48,6 @@ npx prisma db seed
 
 corre
 npm run dev
-
 
 📊 Funcionalidades principales
 Autenticación y roles (Admin, Trabajador, Usuario)

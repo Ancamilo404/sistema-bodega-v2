@@ -124,8 +124,6 @@ export async function PUT(req: Request, { params }: { params: { ventaId: string;
     return response({ error: e.message || "Error al actualizar ítem de venta" }, 500);
   }
 }
-
-// DELETE /api/ventas/:ventaId/items/:itemId → alias de anulación
 export async function DELETE(req: Request, { params }: { params: { ventaId: string; itemId: string } }) {
   try {
     const user = await getAuthUser(req);
@@ -153,14 +151,18 @@ export async function DELETE(req: Request, { params }: { params: { ventaId: stri
     const total = items.reduce((acc, i) => acc + Number(i.subtotal), 0);
     await prisma.venta.update({ where: { id: Number(params.ventaId) }, data: { total } });
 
-await logHistorial({
-  tipo: "ACTUALIZAR",
-  accion: `Ítem de venta #${anulada.id} anulado`,
-  entidad: "VentaProducto",
-  entidadId: anulada.id,
-  usuarioId: user.id,
-  detalle: anulada,
-  ip: req.headers.get("x-forwarded-for") || undefined,
-});
+    await logHistorial({
+      tipo: "ACTUALIZAR",
+      accion: `Ítem de venta #${anulada.id} anulado`,
+      entidad: "VentaProducto",
+      entidadId: anulada.id,
+      usuarioId: user.id,
+      detalle: anulada,
+      ip: req.headers.get("x-forwarded-for") || undefined,
+    });
 
-return response({ data: { id: anulada.id }, message: "Ítem de venta anulado correctamente" });
+    return response({ data: { id: anulada.id }, message: "Ítem de venta anulado correctamente" });
+  } catch (e: any) {
+    return response({ error: e.message || "Error al anular ítem de venta" }, 500);
+  }
+}
