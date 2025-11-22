@@ -1,26 +1,594 @@
+// 'use client';
+// import '@/app/style/style.css';
+// import '@/app/style/global-responsive.css';
+// import '@/app/style/components-responsive.css';
+// import '@/app/style/crud-responsive-pages.css';
+// import React, { useState, useEffect,  useCallback,useRef, startTransition } from 'react';
+// import { useRouter } from 'next/navigation';
+// import MainLayout from '../../components/layout/MainLayout';
+// import Header from '../../components/layout/Header';
+// import Sidebar from '../../components/layout/Sidebar';
+// import SearchBar from '../../components/common/SearchBar';
+// import ScrollableTable from '../../components/common/ScrollableTable';
+// import formatDateTime from '../../../lib/formatDate';
+// import { FaCalendarAlt, FaClock, FaFilter, FaFileExport } from 'react-icons/fa';
+// import toast from 'react-hot-toast';
+// import { FaSearch } from 'react-icons/fa';
+// import { FaCalendarDay } from 'react-icons/fa';
+// import { IoTimeSharp } from 'react-icons/io5';
+// import { IoIosPricetags } from 'react-icons/io';
+// import { FaFolder } from 'react-icons/fa';
+// import { FaUser } from 'react-icons/fa';
+// import { PiNewspaperClippingFill } from 'react-icons/pi';
+// import ModalBase from '../../components/modal/ModalBase';
+
+// type HistorialItem = {
+//   id: number;
+//   fecha: string | Date;
+//   tipo: 'CREAR' | 'ACTUALIZAR' | 'ELIMINAR' | 'LOGIN' | 'LOGOUT';
+//   accion: string;
+//   entidad?: string;
+//   entidadId?: number;
+//   detalle?: string;
+//   ip?: string;
+//   usuario?: {
+//     id: number;
+//     nombre: string;
+//     rol: string;
+//   };
+// };
+
+// type Filtros = {
+//   busqueda: string;
+//   fechaInicio: string;
+//   fechaFin: string;
+//   horaInicio: string;
+//   horaFin: string;
+//   tipo: string;
+//   entidad: string;
+//   usuarioId: string;
+// };
+
+// export default function HistorialPage() {
+//   const router = useRouter();
+//   const tableRef = useRef<HTMLDivElement>(null);
+
+//   const [data, setData] = useState<HistorialItem[]>([]);
+//   const [columns] = useState([
+//     { key: 'id', label: 'ID', width: '70px' },
+//     { key: 'fecha', label: 'Fecha y Hora', width: '180px' },
+//     { key: 'tipo', label: 'Tipo', width: '120px' },
+//     { key: 'usuario', label: 'Usuario', width: '150px' },
+//     { key: 'entidad', label: 'Entidad', width: '120px' },
+//     { key: 'accion', label: 'Acción', width: '300px' },
+//     { key: 'ip', label: 'IP', width: '100px' },
+//   ]);
+
+//   const [selectedData, setSelectedData] = useState<HistorialItem | null>(null);
+//   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+//   // Filtros
+//   const [filtros, setFiltros] = useState<Filtros>({
+//     busqueda: '',
+//     fechaInicio: '',
+//     fechaFin: '',
+//     horaInicio: '',
+//     horaFin: '',
+//     tipo: '',
+//     entidad: '',
+//     usuarioId: '',
+//   });
+
+//   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+//   const [usuarios, setUsuarios] = useState<any[]>([]);
+
+//   // Paginación
+//   const [page, setPage] = useState(1);
+//   const [total, setTotal] = useState(0);
+//   const [limit] = useState(50);
+
+//   // Control de polling
+//   const [isFiltering, setIsFiltering] = useState(false);
+//   const [isMutating, setIsMutating] = useState(false);
+
+//   // KPIs
+//   const [kpis, setKpis] = useState({
+//     totalHoy: 0,
+//     ventas: 0,
+//     cambios: 0,
+//     logins: 0,
+//   });
+
+//   // modal detalle
+//   const [showModal, setShowModal] = useState(false);
+//   const [modalType, setModalType] = useState<'detalle' | null>(null);
+
+//   const abrirModalDetalle = useCallback((item: HistorialItem) => {
+//     setSelectedData(item);
+//     setModalType('detalle');
+//     setShowModal(true);
+//   }, []);
+
+//   // Cargar usuarios para el filtro
+//   useEffect(() => {
+//     fetch('/api/usuarios')
+//       .then(r => r.json())
+//       .then(json => setUsuarios(json.data || []))
+//       .catch(err => console.error('Error cargando usuarios:', err));
+//   }, []);
+
+//   // Polling con filtros
+//   useEffect(() => {
+//     const fetchHistorial = async () => {
+//       if (isMutating) return;
+
+//       const currentScroll = tableRef.current?.scrollTop || 0;
+
+//       try {
+//         // Construir URL con filtros
+//         let url = `/api/historial?page=${page}&limit=${limit}`;
+
+//         if (filtros.busqueda) url += `&q=${encodeURIComponent(filtros.busqueda)}`;
+//         if (filtros.tipo) url += `&tipo=${filtros.tipo}`;
+//         if (filtros.entidad) url += `&entidad=${filtros.entidad}`;
+//         if (filtros.usuarioId) url += `&usuarioId=${filtros.usuarioId}`;
+
+//         // Filtros de fecha/hora
+//         if (filtros.fechaInicio) {
+//           const inicio = new Date(filtros.fechaInicio);
+//           if (filtros.horaInicio) {
+//             const [h, m] = filtros.horaInicio.split(':');
+//             inicio.setHours(parseInt(h), parseInt(m), 0);
+//           }
+//           url += `&desde=${inicio.toISOString()}`;
+//         }
+
+//         if (filtros.fechaFin) {
+//           const fin = new Date(filtros.fechaFin);
+//           if (filtros.horaFin) {
+//             const [h, m] = filtros.horaFin.split(':');
+//             fin.setHours(parseInt(h), parseInt(m), 59);
+//           } else {
+//             fin.setHours(23, 59, 59);
+//           }
+//           url += `&hasta=${fin.toISOString()}`;
+//         }
+
+//         const res = await fetch(url, { cache: 'no-store' });
+//         if (!res.ok) {
+//           toast.error('Error al cargar historial');
+//           return;
+//         }
+
+//         const json = await res.json();
+//         const historial: HistorialItem[] = Array.isArray(json.data.items) ? json.data.items : [];
+
+//         const backendRows: HistorialItem[] = historial.map((row: any) => ({
+//           ...row,
+//           fecha: row.fecha ? formatDateTime(row.fecha) : '',
+//         }));
+
+//         startTransition(() => {
+//           setData(backendRows);
+//           setTotal(json.data.total || 0);
+//         });
+
+//         // Calcular KPIs
+//         const hoy = new Date().toISOString().split('T')[0];
+//         setKpis({
+//           totalHoy: historial.filter(h => h.fecha.toString().includes(hoy)).length,
+//           ventas: historial.filter(h => h.entidad === 'Venta').length,
+//           cambios: historial.filter(h => h.tipo === 'ACTUALIZAR').length,
+//           logins: historial.filter(h => h.tipo === 'LOGIN').length,
+//         });
+
+//         setTimeout(() => {
+//           if (tableRef.current) {
+//             tableRef.current.scrollTop = currentScroll;
+//           }
+//         }, 0);
+//       } catch (error) {
+//         console.error('Error al traer historial:', error);
+//         toast.error('Error de conexión');
+//         setData([]);
+//       }
+//     };
+
+//     fetchHistorial();
+
+//     // Solo hacer polling si no hay filtros activos
+//     const tieneFiltros = Object.values(filtros).some(v => v !== '');
+//     if (!tieneFiltros && !isFiltering) {
+//   const interval = setInterval(fetchHistorial, 180000); // cada 2 minutos
+//       return () => clearInterval(interval);
+//     }
+//   }, [page, limit, filtros, isFiltering, isMutating]);
+
+//   // Aplicar filtros
+//   const aplicarFiltros = () => {
+//     setIsFiltering(true);
+//     setPage(1);
+//     // El useEffect se encarga de hacer el fetch
+//   };
+
+//   // Limpiar filtros
+//   const limpiarFiltros = () => {
+//     setFiltros({
+//       busqueda: '',
+//       fechaInicio: '',
+//       fechaFin: '',
+//       horaInicio: '',
+//       horaFin: '',
+//       tipo: '',
+//       entidad: '',
+//       usuarioId: '',
+//     });
+//     setIsFiltering(false);
+//     setPage(1);
+//   };
+
+//   // Exportar a CSV
+//   const exportarCSV = () => {
+//     const headers = ['ID', 'Fecha', 'Tipo', 'Usuario', 'Entidad', 'Acción', 'IP'];
+//     const rows = data.map(item => [
+//       item.id,
+//       item.fecha,
+//       item.tipo,
+//       item.usuario?.nombre || 'N/A',
+//       item.entidad || 'N/A',
+//       item.accion,
+//       item.ip || 'N/A',
+//     ]);
+
+//     const csv = [
+//       headers.join(','),
+//       ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+//     ].join('\n');
+
+//     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+//     const link = document.createElement('a');
+//     link.href = URL.createObjectURL(blob);
+//     link.download = `historial_${new Date().toISOString().split('T')[0]}.csv`;
+//     link.click();
+
+//     toast.success('Historial exportado correctamente');
+//   };
+
+//   const historialInfo = selectedData && (
+//     <div className="sidebar-info">
+//       <hr className="HrImf" />
+//       <p>
+//         <strong>ID:</strong> {selectedData.id}
+//       </p>
+//       <p>
+//         <strong>Fecha:</strong> {selectedData.fecha}
+//       </p>
+//       <p>
+//         <strong>Tipo:</strong>{' '}
+//         <span
+//           style={{
+//             color:
+//               selectedData.tipo === 'CREAR'
+//                 ? 'green'
+//                 : selectedData.tipo === 'ELIMINAR'
+//                   ? 'red'
+//                   : selectedData.tipo === 'ACTUALIZAR'
+//                     ? 'orange'
+//                     : 'blue',
+//             fontWeight: 'bold',
+//           }}
+//         >
+//           {selectedData.tipo}
+//         </span>
+//       </p>
+//       {selectedData.usuario && (
+//         <>
+//           <p>
+//             <strong>Usuario:</strong> {selectedData.usuario}
+//           </p>
+//         </>
+//       )}
+//       {selectedData.entidad && (
+//         <p>
+//           <strong>Entidad:</strong> {selectedData.entidad}
+//         </p>
+//       )}
+//       {selectedData.entidadId && (
+//         <p>
+//           <strong>Id Emplea. Responsa.:</strong> {selectedData.entidadId}
+//         </p>
+//       )}
+//       <p>
+//         <strong>Acción:</strong> {selectedData.accion}
+//       </p>
+//       {selectedData.ip && (
+//         <p>
+//           <strong>IP:</strong> {selectedData.ip}
+//         </p>
+//       )}
+//       {selectedData.detalle && (
+//         <div>
+//           <p>
+//             <strong>Detalle expandido:</strong>{' '}
+//             <button className="botton-cell" onClick={() => abrirModalDetalle(selectedData)}>
+//               Ver JSON completo
+//             </button>
+//           </p>
+//         </div>
+//       )}
+//     </div>
+//   );
+
+//   const sidebarButtons = [
+//     {
+//       label: 'Volver',
+//       onClick: () => router.push('/dashboard'),
+//       disabled: false,
+//     },
+//     {
+//       label: mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros',
+//       onClick: () => setMostrarFiltros(!mostrarFiltros),
+//       disabled: false,
+//     },
+//     {
+//       label: 'Exportar Excel (CSV)',
+//       onClick: exportarCSV,
+//       disabled: data.length === 0,
+//     },
+//   ];
+
+//   return (
+//     <MainLayout
+//       showSidebar={true}
+//       contentClassName="contenedor-ventas"
+//       sidebar={
+//         <Sidebar
+//           buttons={sidebarButtons}
+//           showInfo={true}
+//           infoContent={historialInfo}
+//           selected={!!selectedData}
+//         />
+//       }
+//       header={<Header title="Historial General" icon={<PiNewspaperClippingFill size={32} />} />}
+//     >
+//         {showModal && modalType === 'detalle' && selectedData && (
+//   <ModalBase
+//     title={`Detalle de acción #${selectedData.id}`}
+//     onClose={() => setShowModal(false)}
+//   >
+//     <pre className="modal-json">
+
+//       {(() => {
+//         try {
+//           return JSON.stringify(JSON.parse(selectedData.detalle ?? '{}'), null, 2);
+//         } catch {
+//           return selectedData.detalle;
+//         }
+//       })()}
+//     </pre>
+//   </ModalBase>
+// )}
+
+//       {/* Panel de Filtros */}
+//       {mostrarFiltros && (
+//         <div className="filtros-panel">
+//           <div className="filtros-grid">
+//             {/* Búsqueda */}
+//             <div>
+//               <label>
+//                 <FaSearch /> Búscar
+//               </label>
+//               <input
+//                 type="text"
+//                 value={filtros.busqueda}
+//                 onChange={e => setFiltros({ ...filtros, busqueda: e.target.value })}
+//                 placeholder="Buscar en acciones..."
+//               />
+//             </div>
+
+//             {/* Fecha Inicio */}
+//             <div>
+//               <label>
+//                 <FaCalendarDay /> Fecha Inicio
+//               </label>
+//               <input
+//                 type="date"
+//                 value={filtros.fechaInicio}
+//                 onChange={e => setFiltros({ ...filtros, fechaInicio: e.target.value })}
+//               />
+//             </div>
+
+//             {/* Fecha Fin */}
+//             <div>
+//               <label>
+//                 <FaCalendarDay /> Fecha Fin
+//               </label>
+//               <input
+//                 type="date"
+//                 value={filtros.fechaFin}
+//                 onChange={e => setFiltros({ ...filtros, fechaFin: e.target.value })}
+//               />
+//             </div>
+
+//             {/* Hora Inicio */}
+//             <div>
+//               <label>
+//                 <IoTimeSharp /> Hora Inicio
+//               </label>
+//               <input
+//                 type="time"
+//                 value={filtros.horaInicio}
+//                 onChange={e => setFiltros({ ...filtros, horaInicio: e.target.value })}
+//               />
+//             </div>
+
+//             {/* Hora Fin */}
+//             <div>
+//               <label>
+//                 <IoTimeSharp /> Hora Fin
+//               </label>
+//               <input
+//                 type="time"
+//                 value={filtros.horaFin}
+//                 onChange={e => setFiltros({ ...filtros, horaFin: e.target.value })}
+//               />
+//             </div>
+
+//             {/* Usuario */}
+//             <div>
+//               <label>
+//                 <FaUser /> Usuario
+//               </label>
+//               <select
+//                 value={filtros.usuarioId}
+//                 onChange={e => setFiltros({ ...filtros, usuarioId: e.target.value })}
+//               >
+//                 <option value="">Todos</option>
+//                 {usuarios.map(u => (
+//                   <option key={u.id} value={u.id}>
+//                     {u.nombre} ({u.rol})
+//                   </option>
+//                 ))}
+//               </select>
+//             </div>
+
+//             {/* Tipo */}
+//             <div>
+//               <label>
+//                 <IoIosPricetags /> Tipo
+//               </label>
+//               <select
+//                 value={filtros.tipo}
+//                 onChange={e => setFiltros({ ...filtros, tipo: e.target.value })}
+//               >
+//                 <option value="">Todos</option>
+//                 <option value="CREAR">CREAR</option>
+//                 <option value="ACTUALIZAR">ACTUALIZAR</option>
+//                 <option value="ELIMINAR">ELIMINAR</option>
+//                 <option value="LOGIN">LOGIN</option>
+//               </select>
+//             </div>
+
+//             {/* Entidad */}
+//             <div>
+//               <label>
+//                 <FaFolder /> Entidad
+//               </label>
+//               <select
+//                 value={filtros.entidad}
+//                 onChange={e => setFiltros({ ...filtros, entidad: e.target.value })}
+//               >
+//                 <option value="">Todas</option>
+//                 <option value="Venta">Venta</option>
+//                 <option value="Cliente">Cliente</option>
+//                 <option value="Producto">Producto</option>
+//                 <option value="Aliado">Aliado</option>
+//                 <option value="Usuario">Usuario</option>
+//               </select>
+//             </div>
+//           </div>
+
+//           <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+//             <button onClick={aplicarFiltros} className="btn-primary">
+//               <FaFilter /> Aplicar Filtros
+//             </button>
+//             <button onClick={limpiarFiltros} className="btn-secondaryy">
+//               Cancelar Filtros
+//             </button>
+//           </div>
+//         </div>
+//       )}
+//       {/* KPIs */}
+//       <div className="kpi-container" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+//         <div className="kpi-card">
+//           <h3>Acciones Hoy</h3>
+//           <p className="kpi-value">{kpis.totalHoy}</p>
+//         </div>
+//         <div className="kpi-card">
+//           <h3>Ventas Creadas y Confrimadas</h3>
+//           <p className="kpi-value">{kpis.ventas}</p>
+//         </div>
+//         <div className="kpi-card">
+//           <h3>Actulizaciones Hechas</h3>
+//           <p className="kpi-value">{kpis.cambios}</p>
+//         </div>
+//         <div className="kpi-card">
+//           <h3>Ingresos y Salida del sistema</h3>
+//           <p className="kpi-value">{kpis.logins}</p>
+//         </div>
+//       </div>
+//       {/* Tabla */}
+//       <ScrollableTable
+//         ref={tableRef}
+//         columns={columns}
+//         data={data.map(row => ({
+//           ...row,
+//           fecha: row.fecha || 'Sin fecha',
+//           usuario: row.usuario?.nombre || 'Sistema',
+//           entidad: row.entidad || 'N/A',
+//         }))}
+//         selectedId={selectedId}
+//         onRowClick={(row: any) => {
+//           if (selectedId === row.id) {
+//             setSelectedId(null);
+//             setSelectedData(null);
+//           } else {
+//             setSelectedId(row.id);
+//             setSelectedData(row as HistorialItem);
+//           }
+//         }}
+//       />
+
+//       {/* Paginación */}
+//       <div className="pagination">
+//         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+//           ← Anterior
+//         </button>
+//         <span>
+//           Página {page} de {Math.ceil(total / limit)} ({total} registros)
+//         </span>
+//         <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil(total / limit)}>
+//           Siguiente →
+//         </button>
+//       </div>
+//     </MainLayout>
+//   );
+// }
+
+// Código corregido con SWR (estructura base). Necesito tu API exacta para ajustar mejor.
+// IMPORTANTE: Esto solo es una base estructurada. Ajustaremos cada detalle después.
+
+// Debido al tamaño del archivo original y que debo mantenerlo limpio,
+// aquí va la estructura corregida con SWR para reemplazar polling manual.
+
+// Próximo paso: Pégame aquí mismo tus endpoints EXACTOS y tus filtros para integrarlos.
 'use client';
+
 import '@/app/style/style.css';
 import '@/app/style/global-responsive.css';
 import '@/app/style/components-responsive.css';
 import '@/app/style/crud-responsive-pages.css';
-import React, { useState, useEffect,  useCallback,useRef, startTransition } from 'react';
+import React, { useState, useRef, useMemo, useCallback } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import MainLayout from '../../components/layout/MainLayout';
 import Header from '../../components/layout/Header';
 import Sidebar from '../../components/layout/Sidebar';
-import SearchBar from '../../components/common/SearchBar';
 import ScrollableTable from '../../components/common/ScrollableTable';
 import formatDateTime from '../../../lib/formatDate';
-import { FaCalendarAlt, FaClock, FaFilter, FaFileExport } from 'react-icons/fa';
-import toast from 'react-hot-toast';
-import { FaSearch } from 'react-icons/fa';
-import { FaCalendarDay } from 'react-icons/fa';
+import { FaFilter, FaSearch, FaCalendarDay, FaFolder, FaUser } from 'react-icons/fa';
 import { IoTimeSharp } from 'react-icons/io5';
 import { IoIosPricetags } from 'react-icons/io';
-import { FaFolder } from 'react-icons/fa';
-import { FaUser } from 'react-icons/fa';
 import { PiNewspaperClippingFill } from 'react-icons/pi';
+import toast from 'react-hot-toast';
 import ModalBase from '../../components/modal/ModalBase';
+
+// ✅ Fetcher optimizado con manejo de errores
+const fetcher = async (url: string) => {
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('Error al cargar historial');
+  return res.json();
+};
 
 type HistorialItem = {
   id: number;
@@ -53,21 +621,13 @@ export default function HistorialPage() {
   const router = useRouter();
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const [data, setData] = useState<HistorialItem[]>([]);
-  const [columns] = useState([
-    { key: 'id', label: 'ID', width: '70px' },
-    { key: 'fecha', label: 'Fecha y Hora', width: '180px' },
-    { key: 'tipo', label: 'Tipo', width: '120px' },
-    { key: 'usuario', label: 'Usuario', width: '150px' },
-    { key: 'entidad', label: 'Entidad', width: '120px' },
-    { key: 'accion', label: 'Acción', width: '300px' },
-    { key: 'ip', label: 'IP', width: '100px' },
-  ]);
-
   const [selectedData, setSelectedData] = useState<HistorialItem | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(50);
 
-  // Filtros
   const [filtros, setFiltros] = useState<Filtros>({
     busqueda: '',
     fechaInicio: '',
@@ -79,140 +639,99 @@ export default function HistorialPage() {
     usuarioId: '',
   });
 
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [usuarios, setUsuarios] = useState<any[]>([]);
+  // ✅ Construir URL con useMemo (solo cambia cuando cambian filtros/página)
+  const apiURL = useMemo(() => {
+    let url = `/api/historial?page=${page}&limit=${limit}`;
 
-  // Paginación
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [limit] = useState(50);
+    if (filtros.busqueda) url += `&q=${encodeURIComponent(filtros.busqueda)}`;
+    if (filtros.tipo) url += `&tipo=${filtros.tipo}`;
+    if (filtros.entidad) url += `&entidad=${filtros.entidad}`;
+    if (filtros.usuarioId) url += `&usuarioId=${filtros.usuarioId}`;
 
-  // Control de polling
-  const [isFiltering, setIsFiltering] = useState(false);
-  const [isMutating, setIsMutating] = useState(false);
+    if (filtros.fechaInicio) {
+      const inicio = new Date(filtros.fechaInicio);
+      if (filtros.horaInicio) {
+        const [h, m] = filtros.horaInicio.split(':');
+        inicio.setHours(+h, +m, 0);
+      }
+      url += `&desde=${inicio.toISOString()}`;
+    }
 
-  // KPIs
-  const [kpis, setKpis] = useState({
-    totalHoy: 0,
-    ventas: 0,
-    cambios: 0,
-    logins: 0,
+    if (filtros.fechaFin) {
+      const fin = new Date(filtros.fechaFin);
+      if (filtros.horaFin) {
+        const [h, m] = filtros.horaFin.split(':');
+        fin.setHours(+h, +m, 59);
+      } else {
+        fin.setHours(23, 59, 59);
+      }
+      url += `&hasta=${fin.toISOString()}`;
+    }
+
+    return url;
+  }, [page, limit, filtros]);
+
+  // ✅ SWR optimizado para Vercel
+  const { data, error, isValidating, mutate } = useSWR(apiURL, fetcher, {
+    refreshInterval: 180000, // Solo refresca cada 3 minutos
+    revalidateOnFocus: false, // ❌ No refrescar al cambiar de pestaña
+    revalidateOnReconnect: true, // ✅ Solo al reconectar internet
+    dedupingInterval: 10000, // ✅ Evita requests duplicados en 10s
   });
 
-  // modal detalle
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'detalle' | null>(null);
+  // ✅ Cargar usuarios para filtros
+  const { data: usuariosData } = useSWR('/api/usuarios', fetcher, {
+    revalidateOnFocus: false,
+    revalidateIfStale: false, // ✅ No revalidar si ya tiene datos
+  });
 
-  const abrirModalDetalle = useCallback((item: HistorialItem) => {
-    setSelectedData(item);
-    setModalType('detalle');
-    setShowModal(true);
-  }, []);
+  const usuarios = usuariosData?.data || [];
+  const historial: HistorialItem[] = data?.data?.items || [];
+  const total = data?.data?.total || 0;
 
-  // Cargar usuarios para el filtro
-  useEffect(() => {
-    fetch('/api/usuarios')
-      .then(r => r.json())
-      .then(json => setUsuarios(json.data || []))
-      .catch(err => console.error('Error cargando usuarios:', err));
-  }, []);
+  // ✅ Formatear datos (memoizado)
+  const rows = useMemo(
+    () =>
+      historial.map((row: any) => ({
+        ...row,
+        fecha: row.fecha ? formatDateTime(row.fecha) : '',
+      })),
+    [historial]
+  );
 
-  // Polling con filtros
-  useEffect(() => {
-    const fetchHistorial = async () => {
-      if (isMutating) return;
-
-      const currentScroll = tableRef.current?.scrollTop || 0;
-
-      try {
-        // Construir URL con filtros
-        let url = `/api/historial?page=${page}&limit=${limit}`;
-
-        if (filtros.busqueda) url += `&q=${encodeURIComponent(filtros.busqueda)}`;
-        if (filtros.tipo) url += `&tipo=${filtros.tipo}`;
-        if (filtros.entidad) url += `&entidad=${filtros.entidad}`;
-        if (filtros.usuarioId) url += `&usuarioId=${filtros.usuarioId}`;
-
-        // Filtros de fecha/hora
-        if (filtros.fechaInicio) {
-          const inicio = new Date(filtros.fechaInicio);
-          if (filtros.horaInicio) {
-            const [h, m] = filtros.horaInicio.split(':');
-            inicio.setHours(parseInt(h), parseInt(m), 0);
-          }
-          url += `&desde=${inicio.toISOString()}`;
-        }
-
-        if (filtros.fechaFin) {
-          const fin = new Date(filtros.fechaFin);
-          if (filtros.horaFin) {
-            const [h, m] = filtros.horaFin.split(':');
-            fin.setHours(parseInt(h), parseInt(m), 59);
-          } else {
-            fin.setHours(23, 59, 59);
-          }
-          url += `&hasta=${fin.toISOString()}`;
-        }
-
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) {
-          toast.error('Error al cargar historial');
-          return;
-        }
-
-        const json = await res.json();
-        const historial: HistorialItem[] = Array.isArray(json.data.items) ? json.data.items : [];
-
-        const backendRows: HistorialItem[] = historial.map((row: any) => ({
-          ...row,
-          fecha: row.fecha ? formatDateTime(row.fecha) : '',
-        }));
-
-        startTransition(() => {
-          setData(backendRows);
-          setTotal(json.data.total || 0);
-        });
-
-        // Calcular KPIs
-        const hoy = new Date().toISOString().split('T')[0];
-        setKpis({
-          totalHoy: historial.filter(h => h.fecha.toString().includes(hoy)).length,
-          ventas: historial.filter(h => h.entidad === 'Venta').length,
-          cambios: historial.filter(h => h.tipo === 'ACTUALIZAR').length,
-          logins: historial.filter(h => h.tipo === 'LOGIN').length,
-        });
-
-        setTimeout(() => {
-          if (tableRef.current) {
-            tableRef.current.scrollTop = currentScroll;
-          }
-        }, 0);
-      } catch (error) {
-        console.error('Error al traer historial:', error);
-        toast.error('Error de conexión');
-        setData([]);
-      }
+  // ✅ Calcular KPIs (memoizado)
+  const kpis = useMemo(() => {
+    const hoy = new Date().toISOString().split('T')[0];
+    return {
+      totalHoy: historial.filter(h => h.fecha.toString().includes(hoy)).length,
+      ventas: historial.filter(h => h.entidad === 'Venta').length,
+      cambios: historial.filter(h => h.tipo === 'ACTUALIZAR').length,
+      logins: historial.filter(h => h.tipo === 'LOGIN').length,
     };
+  }, [historial]);
 
-    fetchHistorial();
+  // ✅ Columnas de tabla
+  const columns = useMemo(
+    () => [
+      { key: 'id', label: 'ID', width: '70px' },
+      { key: 'fecha', label: 'Fecha y Hora', width: '180px' },
+      { key: 'tipo', label: 'Tipo', width: '120px' },
+      { key: 'usuario', label: 'Usuario', width: '150px' },
+      { key: 'entidad', label: 'Entidad', width: '120px' },
+      { key: 'accion', label: 'Acción', width: '300px' },
+      { key: 'ip', label: 'IP', width: '100px' },
+    ],
+    []
+  );
 
-    // Solo hacer polling si no hay filtros activos
-    const tieneFiltros = Object.values(filtros).some(v => v !== '');
-    if (!tieneFiltros && !isFiltering) {
-      const interval = setInterval(fetchHistorial, 12000);
-      return () => clearInterval(interval);
-    }
-  }, [page, limit, filtros, isFiltering, isMutating]);
+  // ✅ Aplicar filtros (refresca datos)
+  const aplicarFiltros = useCallback(() => {
+    setPage(1); // Reiniciar paginación
+    mutate(); // Forzar refetch
+  }, [mutate]);
 
-  // Aplicar filtros
-  const aplicarFiltros = () => {
-    setIsFiltering(true);
-    setPage(1);
-    // El useEffect se encarga de hacer el fetch
-  };
-
-  // Limpiar filtros
-  const limpiarFiltros = () => {
+  // ✅ Limpiar filtros
+  const limpiarFiltros = useCallback(() => {
     setFiltros({
       busqueda: '',
       fechaInicio: '',
@@ -223,14 +742,13 @@ export default function HistorialPage() {
       entidad: '',
       usuarioId: '',
     });
-    setIsFiltering(false);
     setPage(1);
-  };
+  }, []);
 
-  // Exportar a CSV
-  const exportarCSV = () => {
+  // ✅ Exportar CSV
+  const exportarCSV = useCallback(() => {
     const headers = ['ID', 'Fecha', 'Tipo', 'Usuario', 'Entidad', 'Acción', 'IP'];
-    const rows = data.map(item => [
+    const csvRows = rows.map(item => [
       item.id,
       item.fecha,
       item.tipo,
@@ -242,7 +760,7 @@ export default function HistorialPage() {
 
     const csv = [
       headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+      ...csvRows.map(row => row.map(cell => `"${cell}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -252,7 +770,12 @@ export default function HistorialPage() {
     link.click();
 
     toast.success('Historial exportado correctamente');
-  };
+  }, [rows]);
+
+  // ✅ Mostrar errores
+  if (error) {
+    toast.error('Error al cargar historial');
+  }
 
   const historialInfo = selectedData && (
     <div className="sidebar-info">
@@ -282,11 +805,9 @@ export default function HistorialPage() {
         </span>
       </p>
       {selectedData.usuario && (
-        <>
-          <p>
-            <strong>Usuario:</strong> {selectedData.usuario}
-          </p>
-        </>
+        <p>
+          <strong>Usuario:</strong> {selectedData.usuario.nombre}
+        </p>
       )}
       {selectedData.entidad && (
         <p>
@@ -295,7 +816,7 @@ export default function HistorialPage() {
       )}
       {selectedData.entidadId && (
         <p>
-          <strong>Id Emplea. Responsa.:</strong> {selectedData.entidadId}
+          <strong>ID Empleado:</strong> {selectedData.entidadId}
         </p>
       )}
       <p>
@@ -307,14 +828,9 @@ export default function HistorialPage() {
         </p>
       )}
       {selectedData.detalle && (
-        <div>
-          <p>
-            <strong>Detalle expandido:</strong>{' '}
-            <button className="botton-cell" onClick={() => abrirModalDetalle(selectedData)}>
-              Ver JSON completo
-            </button>
-          </p>
-        </div>
+        <button className="botton-cell" onClick={() => setShowModal(true)}>
+          Ver JSON completo
+        </button>
       )}
     </div>
   );
@@ -331,9 +847,9 @@ export default function HistorialPage() {
       disabled: false,
     },
     {
-      label: 'Exportar Excel (CSV)',
+      label: 'Exportar CSV',
       onClick: exportarCSV,
-      disabled: data.length === 0,
+      disabled: rows.length === 0,
     },
   ];
 
@@ -351,29 +867,25 @@ export default function HistorialPage() {
       }
       header={<Header title="Historial General" icon={<PiNewspaperClippingFill size={32} />} />}
     >
-        {showModal && modalType === 'detalle' && selectedData && (
-  <ModalBase
-    title={`Detalle de acción #${selectedData.id}`}
-    onClose={() => setShowModal(false)}
-  >
-    <pre className="modal-json">
-        
-      {(() => {
-        try {
-          return JSON.stringify(JSON.parse(selectedData.detalle ?? '{}'), null, 2);
-        } catch {
-          return selectedData.detalle;
-        }
-      })()}
-    </pre>
-  </ModalBase>
-)}
+      {/* Modal Detalle */}
+      {showModal && selectedData && (
+        <ModalBase title={`Detalle acción #${selectedData.id}`} onClose={() => setShowModal(false)}>
+          <pre className="modal-json">
+            {(() => {
+              try {
+                return JSON.stringify(JSON.parse(selectedData.detalle ?? '{}'), null, 2);
+              } catch {
+                return selectedData.detalle;
+              }
+            })()}
+          </pre>
+        </ModalBase>
+      )}
 
       {/* Panel de Filtros */}
       {mostrarFiltros && (
         <div className="filtros-panel">
           <div className="filtros-grid">
-            {/* Búsqueda */}
             <div>
               <label>
                 <FaSearch /> Búscar
@@ -386,7 +898,6 @@ export default function HistorialPage() {
               />
             </div>
 
-            {/* Fecha Inicio */}
             <div>
               <label>
                 <FaCalendarDay /> Fecha Inicio
@@ -398,7 +909,6 @@ export default function HistorialPage() {
               />
             </div>
 
-            {/* Fecha Fin */}
             <div>
               <label>
                 <FaCalendarDay /> Fecha Fin
@@ -410,7 +920,6 @@ export default function HistorialPage() {
               />
             </div>
 
-            {/* Hora Inicio */}
             <div>
               <label>
                 <IoTimeSharp /> Hora Inicio
@@ -422,7 +931,6 @@ export default function HistorialPage() {
               />
             </div>
 
-            {/* Hora Fin */}
             <div>
               <label>
                 <IoTimeSharp /> Hora Fin
@@ -434,7 +942,6 @@ export default function HistorialPage() {
               />
             </div>
 
-            {/* Usuario */}
             <div>
               <label>
                 <FaUser /> Usuario
@@ -444,7 +951,7 @@ export default function HistorialPage() {
                 onChange={e => setFiltros({ ...filtros, usuarioId: e.target.value })}
               >
                 <option value="">Todos</option>
-                {usuarios.map(u => (
+                {usuarios.map((u: any) => (
                   <option key={u.id} value={u.id}>
                     {u.nombre} ({u.rol})
                   </option>
@@ -452,7 +959,6 @@ export default function HistorialPage() {
               </select>
             </div>
 
-            {/* Tipo */}
             <div>
               <label>
                 <IoIosPricetags /> Tipo
@@ -469,7 +975,6 @@ export default function HistorialPage() {
               </select>
             </div>
 
-            {/* Entidad */}
             <div>
               <label>
                 <FaFolder /> Entidad
@@ -498,6 +1003,7 @@ export default function HistorialPage() {
           </div>
         </div>
       )}
+
       {/* KPIs */}
       <div className="kpi-container" style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
         <div className="kpi-card">
@@ -517,13 +1023,13 @@ export default function HistorialPage() {
           <p className="kpi-value">{kpis.logins}</p>
         </div>
       </div>
+
       {/* Tabla */}
       <ScrollableTable
         ref={tableRef}
         columns={columns}
-        data={data.map(row => ({
+        data={rows.map(row => ({
           ...row,
-          fecha: row.fecha || 'Sin fecha',
           usuario: row.usuario?.nombre || 'Sistema',
           entidad: row.entidad || 'N/A',
         }))}
