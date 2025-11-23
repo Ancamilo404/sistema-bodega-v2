@@ -19,21 +19,17 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
     const offset = Math.max(0, parseInt(searchParams.get("offset") || "0"));
 
-    // ✅ Usar findMany en lugar de raw queries para evitar prepared statement conflicts
+    // ✅ Usar findMany en lugar de raw queries
     const where: any = {
       deletedAt: null,
-    };
-
-    // Búsqueda en múltiples campos
-    if (search) {
-      where.OR = [
+      OR: [
         { nombre: { contains: search, mode: 'insensitive' } },
         { documento: { contains: search, mode: 'insensitive' } },
         { telefono: { contains: search, mode: 'insensitive' } },
         { correo: { contains: search, mode: 'insensitive' } },
         { direccion: { contains: search, mode: 'insensitive' } },
-      ];
-    }
+      ],
+    };
 
     if (estado && ['ACTIVO', 'BLOQUEADO'].includes(estado)) {
       where.estado = estado;
@@ -50,7 +46,7 @@ export async function GET(req: Request) {
       };
     }
 
-    // ✅ Obtener total y lista con paginación (evita prepared statement conflicts)
+    // ✅ Obtener total y lista con paginación
     const [aliados, total] = await Promise.all([
       prisma.aliado.findMany({
         where,
@@ -66,7 +62,7 @@ export async function GET(req: Request) {
       prisma.aliado.count({ where }),
     ]);
 
-    // ✅ Serializar fechas y agregar conteo de productos
+    // ✅ Serializar fechas y agregar conteo
     const aliadosSerializados = aliados.map((a: any) => ({
       ...a,
       fechaRegistro: a.fechaRegistro?.toISOString() || null,
@@ -97,11 +93,11 @@ export async function POST(req: Request) {
     }
 
     const body = await validateBody(req, aliadoSchema);
-    if (body.documento) {
+    if (body.documento)
       body.documento = DOMPurify.sanitize(body.documento.trim());
-    }
     if (body.telefono) body.telefono = body.telefono.trim();
-    if (body.correo) body.correo = body.correo.trim();
+    if (body.correo) body.correo = DOMPurify.sanitize(body.correo.trim());
+    if (body.direccion) body.direccion = DOMPurify.sanitize(body.direccion.trim());
 
     const existing = await prisma.aliado.findUnique({
       where: { documento: body.documento },
@@ -128,7 +124,7 @@ export async function POST(req: Request) {
         {
           data: {
             ...result,
-            fechaRegistro: result.fechaRegistro.toISOString(), // ✅ Serializar
+            fechaRegistro: result.fechaRegistro.toISOString(),
           },
           message: "Aliado reactivado correctamente",
         },
@@ -140,7 +136,9 @@ export async function POST(req: Request) {
       return response({ error: "Documento ya registrado" }, 409);
     }
 
-    result = await prisma.aliado.create({ data: body });
+    result = await prisma.aliado.create({
+      data: body,
+    });
 
     await logHistorial({
       tipo: "CREAR",
@@ -156,14 +154,18 @@ export async function POST(req: Request) {
       {
         data: {
           ...result,
-          fechaRegistro: result.fechaRegistro.toISOString(), // ✅ Serializar
+          fechaRegistro: result.fechaRegistro.toISOString(),
         },
         message: "Aliado creado correctamente",
       },
       201
     );
-  } catch (e: any) {
-    if (e.code === "VALIDATION") return response({ error: e.error }, 400);
-    return response({ error: e.message || "Error al crear aliado" }, 500);
+  } catch (e: unknown) {
+    const error = e as any;
+    if (error.code === "P2002")
+      return response({ error: "Documento o correo ya registrado" }, 409);
+    if (error.code === "VALIDATION")
+      return response({ error: error.error }, 400);
+    return response({ error: error.message || "Error al crear aliado" }, 500);
   }
 }

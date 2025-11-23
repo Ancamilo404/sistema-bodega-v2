@@ -5,19 +5,40 @@ import { logHistorial } from "@/lib/logHistorial";
 import { validateBody } from "@/lib/validateBody";
 import { ventaSchema } from "@/schemas/venta";
 
-// GET /api/ventas → lista todas
-export async function GET() {
+// GET /api/ventas?page=1&limit=50 → lista todas con paginación
+export async function GET(req: Request) {
   try {
-    const ventas = await prisma.venta.findMany({
-      include: {
-        cliente: true,
-        usuario: true,
-        items: { include: { producto: true } },
-      },
+    const { searchParams } = new URL(req.url);
+    const page = Number(searchParams.get('page') ?? 1);
+    const limit = Math.min(Number(searchParams.get('limit') ?? 50), 100);
+    const skip = (page - 1) * limit;
+
+    const [ventas, total] = await Promise.all([
+      prisma.venta.findMany({
+        include: {
+          cliente: true,
+          usuario: true,
+          items: { include: { producto: true } },
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.venta.count(),
+    ]);
+
+    return response({
+      data: { items: ventas, total, page, limit },
+      message: "Ventas listadas correctamente",
     });
-    return response({ data: ventas, message: "Ventas listadas correctamente" });
-  } catch (e: any) {
-    return response({ error: e.message || "Error al listar ventas" }, 500);
+  } catch (e: unknown) {
+    const error = e as any;
+    console.error("Error en /api/ventas GET:", {
+      message: error.message,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+    });
+    return response({ error: error.message || "Error al listar ventas" }, 500);
   }
 }
 

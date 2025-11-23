@@ -4,9 +4,8 @@ import { getAuthUser } from '@/lib/getAuthUser';
 import { logHistorial } from '@/lib/logHistorial';
 import { validateBody } from '@/lib/validateBody';
 import { productoSchema } from '@/schemas/producto';
-import formatDateTime from '@/lib/formatDate';
 
-// GET /api/productos?search=...&estado=...&precioMin=...&precioMax=...&fechaInicio=...&fechaFin=...
+// GET /api/productos?search=...&estado=...&precioMin=...&precioMax=...&fechaInicio=...&fechaFin=...&limit=50&offset=0
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -17,80 +16,78 @@ export async function GET(req: Request) {
     const precioMax = searchParams.get('precioMax');
     const fechaInicio = searchParams.get('fechaInicio');
     const fechaFin = searchParams.get('fechaFin');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
-    let query = `
-      SELECT 
-        p.*,
-        json_build_object(
-          'id', a.id,
-          'nombre', a.nombre,
-          'documento', a.documento
-        ) as aliado,
-        ts_rank(
-          to_tsvector('spanish',
-            coalesce(p.nombre,'') || ' ' ||
-            coalesce(p.descripcion,'') || ' ' ||
-            coalesce(p.categoria,'') || ' ' ||
-            coalesce(p.unidad,'')
-          ),
-          plainto_tsquery('spanish', $1)
-        ) AS rank
-      FROM "Producto" p
-      LEFT JOIN "Aliado" a ON p."aliadoId" = a.id
-      WHERE p."deletedAt" IS NULL
-      AND (
-        $1 = '' OR
-        to_tsvector('spanish',
-          coalesce(p.nombre,'') || ' ' ||
-          coalesce(p.descripcion,'') || ' ' ||
-          coalesce(p.categoria,'') || ' ' ||
-          coalesce(p.unidad,'')
-        ) @@ plainto_tsquery('spanish', $1)
-        OR p.nombre ILIKE '%' || $1 || '%'
-        OR p.descripcion ILIKE '%' || $1 || '%'
-        OR p.categoria ILIKE '%' || $1 || '%'
-        OR p.unidad ILIKE '%' || $1 || '%'
-        OR CAST(p.id AS TEXT) ILIKE '%' || $1 || '%'
-        OR CAST(p.estado AS TEXT) ILIKE '%' || $1 || '%'
-      )
-    `;
+    // ✅ Usar findMany en lugar de raw queries para evitar prepared statement conflicts
+    const where: any = {
+      deletedAt: null,
+    };
 
-    const params: any[] = [search];
+    // Búsqueda en múltiples campos
+    if (search) {
+      where.OR = [
+        { nombre: { contains: search, mode: 'insensitive' } },
+        { descripcion: { contains: search, mode: 'insensitive' } },
+        { categoria: { contains: search, mode: 'insensitive' } },
+        { unidad: { contains: search, mode: 'insensitive' } },
+        { id: { contains: search, mode: 'insensitive' } },
+      ];
+    }
 
     if (estado && ['ACTIVO', 'BLOQUEADO'].includes(estado)) {
-      query += ` AND p.estado = $${params.length + 1}`;
-      params.push(estado);
+      where.estado = estado;
     }
 
     if (precioMin && precioMax) {
-      query += ` AND p.precio BETWEEN $${params.length + 1} AND $${params.length + 2}`;
-      params.push(Number(precioMin), Number(precioMax));
+      where.precio = {
+        gte: parseFloat(precioMin),
+        lte: parseFloat(precioMax),
+      };
     }
 
     if (fechaInicio && fechaFin) {
-      query += ` AND p."creadoEn" BETWEEN $${params.length + 1} AND $${params.length + 2}`;
-      params.push(new Date(fechaInicio), new Date(fechaFin));
+      where.creadoEn = {
+        gte: new Date(fechaInicio),
+        lte: new Date(fechaFin),
+      };
     }
 
-    query += ` ORDER BY rank DESC, p."creadoEn" DESC`;
+    // ✅ Obtener total y lista con paginación (evita prepared statement conflicts)
+    const [productos, total] = await Promise.all([
+      prisma.producto.findMany({
+        where,
+        include: {
+          aliado: {
+            select: { id: true, nombre: true, documento: true },
+          },
+        },
+        skip: offset,
+        take: limit,
+        orderBy: { creadoEn: 'desc' },
+      }),
+      prisma.producto.count({ where }),
+    ]);
 
-    const productos = await prisma.$queryRawUnsafe(query, ...params);
-
-    const productosSerializados = productos.map(p => ({
+    // ✅ Serializar fechas
+    const productosSerializados = productos.map((p: any) => ({
       ...p,
-      aliado: typeof p.aliado === 'string' ? JSON.parse(p.aliado) : p.aliado,
-      precio: Number(p.precio),
-      creadoEn: formatDateTime(p.creadoEn),
-      actualizadoEn: formatDateTime(p.actualizadoEn),
+      creadoEn: p.creadoEn?.toISOString() || null,
+      actualizadoEn: p.actualizadoEn?.toISOString() || null,
     }));
 
     return response({
-      data: productosSerializados,
+      data: { items: productosSerializados, total, limit, offset },
       message: 'Productos listados correctamente',
     });
-  } catch (e: any) {
-    console.error('Error en /api/productos:', e);
-    return response({ error: e.message || 'Error al listar productos' }, 500);
+  } catch (e: unknown) {
+    const error = e as any;
+    console.error('Error en /api/productos:', {
+      message: error.message,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+    });
+    return response({ error: error.message || 'Error al listar productos' }, 500);
   }
 }
 

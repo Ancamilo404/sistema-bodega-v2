@@ -67,7 +67,13 @@ export async function GET(req: Request) {
       },
       message: 'Historial listado correctamente',
     });
-  } catch (e: any) {
-    return response({ error: e.message || 'Error al listar historial' }, 500);
+  } catch (e: unknown) {
+    const error = e as any;
+    console.error('Error en /api/historial:', {
+      message: error.message,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+    });
+    return response({ error: error.message || 'Error al listar historial' }, 500);
   }
 }

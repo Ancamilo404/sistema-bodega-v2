@@ -7,7 +7,7 @@ import { usuarioSchema } from '@/schemas/usuario';
 import bcrypt from 'bcrypt';
 import DOMPurify from 'isomorphic-dompurify';
 
-// GET /api/usuarios?search=...&estado=...&correo=...&documento=...&fechaInicio=...&fechaFin=...
+// GET /api/usuarios?search=...&estado=...&correo=...&documento=...&fechaInicio=...&fechaFin=...&limit=50&offset=0
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -18,79 +18,78 @@ export async function GET(req: Request) {
     const documento = searchParams.get('documento') || '';
     const fechaInicio = searchParams.get('fechaInicio');
     const fechaFin = searchParams.get('fechaFin');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
-    let query = `
-      SELECT 
-        u.*,
-        ts_rank(
-          to_tsvector('spanish',
-            coalesce(u.nombre,'') || ' ' ||
-            coalesce(u.correo,'') || ' ' ||
-            coalesce(u.documento,'') || ' ' ||
-            coalesce(u.telefono,'')
-          ),
-          plainto_tsquery('spanish', $1)
-        ) AS rank
-      FROM "Usuario" u
-      WHERE u."deletedAt" IS NULL
-      AND (
-        $1 = '' OR
-        to_tsvector('spanish',
-          coalesce(u.nombre,'') || ' ' ||
-          coalesce(u.correo,'') || ' ' ||
-          coalesce(u.documento,'') || ' ' ||
-          coalesce(u.telefono,'')
-        ) @@ plainto_tsquery('spanish', $1)
-        OR u.nombre ILIKE '%' || $1 || '%'
-        OR u.correo ILIKE '%' || $1 || '%'
-        OR u.documento ILIKE '%' || $1 || '%'
-        OR u.telefono ILIKE '%' || $1 || '%'
-        OR CAST(u.id AS TEXT) ILIKE '%' || $1 || '%'
-        OR CAST(u."fechaRegistro" AS TEXT) ILIKE '%' || $1 || '%'
-        OR ($1 <> '' AND CAST(u."tipoId" AS TEXT) ILIKE '%' || $1 || '%')
-        OR ($1 <> '' AND CAST(u.rol AS TEXT) ILIKE '%' || $1 || '%')
-        OR ($1 <> '' AND CAST(u.estado AS TEXT) ILIKE '%' || $1 || '%')
-      )
-    `;
-
-    const params: any[] = [search];
+    // ✅ Usar findMany en lugar de raw queries
+    const where: any = {
+      deletedAt: null,
+      OR: [
+        { nombre: { contains: search, mode: 'insensitive' } },
+        { correo: { contains: search, mode: 'insensitive' } },
+        { documento: { contains: search, mode: 'insensitive' } },
+        { telefono: { contains: search, mode: 'insensitive' } },
+      ],
+    };
 
     if (estado && ['ACTIVO', 'BLOQUEADO'].includes(estado)) {
-      query += ` AND u.estado = $${params.length + 1}`;
-      params.push(estado);
+      where.estado = estado;
     }
 
     if (correo) {
-      query += ` AND u.correo = $${params.length + 1}`;
-      params.push(correo.toLowerCase());
+      where.correo = correo.toLowerCase();
     }
 
     if (documento) {
-      query += ` AND u.documento = $${params.length + 1}`;
-      params.push(documento);
+      where.documento = documento;
     }
 
     if (fechaInicio && fechaFin) {
-      query += ` AND u."fechaRegistro" BETWEEN $${params.length + 1} AND $${params.length + 2}`;
-      params.push(new Date(fechaInicio), new Date(fechaFin));
+      where.fechaRegistro = {
+        gte: new Date(fechaInicio),
+        lte: new Date(fechaFin),
+      };
     }
 
-    query += ` ORDER BY rank DESC, u."fechaRegistro" DESC`;
-
-    const usuarios = await prisma.$queryRawUnsafe(query, ...params);
+    // ✅ Obtener total y lista con paginación
+    const [usuarios, total] = await Promise.all([
+      prisma.usuario.findMany({
+        where,
+        skip: offset,
+        take: limit,
+        orderBy: { fechaRegistro: 'desc' },
+        select: {
+          id: true,
+          nombre: true,
+          correo: true,
+          documento: true,
+          telefono: true,
+          tipoId: true,
+          rol: true,
+          estado: true,
+          fechaRegistro: true,
+        },
+      }),
+      prisma.usuario.count({ where }),
+    ]);
 
     // ✅ Serializar fechas
-    const usuariosSerializados = (usuarios as any[]).map(u => ({
+    const usuariosSerializados = usuarios.map((u: any) => ({
       ...u,
       fechaRegistro: u.fechaRegistro?.toISOString() || null,
     }));
 
     return response({
-      data: usuariosSerializados,
+      data: { items: usuariosSerializados, total, limit, offset },
       message: 'Usuarios listados correctamente',
     });
-  } catch (e: any) {
-    console.error('Error en /api/usuarios:', e);
+  } catch (e: unknown) {
+    const error = e as any;
+    console.error('Error en /api/usuarios:', {
+      message: error.message,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+    });
     return response({ error: e.message || 'Error al listar usuarios' }, 500);
   }
 }

@@ -6,7 +6,7 @@ import { validateBody } from '@/lib/validateBody';
 import { clienteSchema } from '@/schemas/cliente';
 import DOMPurify from 'isomorphic-dompurify';
 
-// GET /api/clientes?search=...&estado=...&documento=...&fechaInicio=...&fechaFin=...
+// GET /api/clientes?search=...&estado=...&documento=...&fechaInicio=...&fechaFin=...&limit=50&offset=0
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -16,76 +16,70 @@ export async function GET(req: Request) {
     const documento = searchParams.get('documento') || '';
     const fechaInicio = searchParams.get('fechaInicio');
     const fechaFin = searchParams.get('fechaFin');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
-    let query = `
-SELECT 
-  c.*,
-  CAST((SELECT COUNT(*) FROM "Venta" v WHERE v."clienteId" = c.id AND v.estado = 'CONFIRMADA') AS INTEGER) as "ventasCount",
-  ts_rank(
-    to_tsvector('spanish',
-      coalesce(c.nombre,'') || ' ' ||
-      coalesce(c.documento,'') || ' ' ||
-      coalesce(c.direccion,'') || ' ' ||
-      coalesce(c.telefono,'')
-    ),
-    plainto_tsquery('spanish', $1)
-  ) AS rank
-    FROM "Cliente" c
-      WHERE c."deletedAt" IS NULL
-      AND (
-        $1 = '' OR
-        to_tsvector('spanish',
-          coalesce(c.nombre,'') || ' ' ||
-          coalesce(c.documento,'') || ' ' ||
-          coalesce(c.direccion,'') || ' ' ||
-          coalesce(c.telefono,'')
-        ) @@ plainto_tsquery('spanish', $1)
-        OR c.nombre ILIKE '%' || $1 || '%'
-        OR c.documento ILIKE '%' || $1 || '%'
-        OR c.direccion ILIKE '%' || $1 || '%'
-        OR c.telefono ILIKE '%' || $1 || '%'
-        OR CAST(c.id AS TEXT) ILIKE '%' || $1 || '%'
-        OR CAST(c."tipoId" AS TEXT) ILIKE '%' || $1 || '%'
-        OR CAST(c."fechaRegistro" AS TEXT) ILIKE '%' || $1 || '%'
-        OR CAST(c.estado AS TEXT) ILIKE '%' || $1 || '%'
-      )
-    `;
-
-    const params: any[] = [search];
+    // ✅ Usar findMany en lugar de raw queries para evitar prepared statement conflicts
+    const where: any = {
+      deletedAt: null,
+      OR: [
+        { nombre: { contains: search, mode: 'insensitive' } },
+        { documento: { contains: search, mode: 'insensitive' } },
+        { direccion: { contains: search, mode: 'insensitive' } },
+        { telefono: { contains: search, mode: 'insensitive' } },
+      ],
+    };
 
     if (estado && ['ACTIVO', 'BLOQUEADO'].includes(estado)) {
-      query += ` AND c.estado = ${params.length + 1}`;
-      params.push(estado);
+      where.estado = estado;
     }
 
     if (documento) {
-      query += ` AND c.documento = ${params.length + 1}`;
-      params.push(documento);
+      where.documento = documento;
     }
 
     if (fechaInicio && fechaFin) {
-      query += ` AND c."fechaRegistro" BETWEEN ${params.length + 1} AND ${params.length + 2}`;
-      params.push(new Date(fechaInicio), new Date(fechaFin));
+      where.fechaRegistro = {
+        gte: new Date(fechaInicio),
+        lte: new Date(fechaFin),
+      };
     }
 
-    query += ` ORDER BY rank DESC, c."fechaRegistro" DESC`;
-
-    const clientes = await prisma.$queryRawUnsafe(query, ...params);
+    // ✅ Obtener total y lista con paginación
+    const [clientes, total] = await Promise.all([
+      prisma.cliente.findMany({
+        where,
+        include: {
+          _count: {
+            select: { ventas: { where: { estado: 'CONFIRMADA' } } },
+          },
+        },
+        skip: offset,
+        take: limit,
+        orderBy: { fechaRegistro: 'desc' },
+      }),
+      prisma.cliente.count({ where }),
+    ]);
 
     // ✅ Serializar fechas y agregar conteo
-    const clientesSerializados = (clientes as any[]).map(c => ({
+    const clientesSerializados = clientes.map((c: any) => ({
       ...c,
       fechaRegistro: c.fechaRegistro?.toISOString() || null,
-      ventas: Number(c.ventasCount || 0), // ⬅️ PostgreSQL devuelve en minúsculas
-    }));
+      ventas: c._count?.ventas || 0,
+    })).map(({ _count, ...rest }: any) => rest);
 
     return response({
-      data: clientesSerializados,
+      data: { items: clientesSerializados, total, limit, offset },
       message: 'Clientes listados correctamente',
     });
-  } catch (e: any) {
-    console.error('Error en /api/clientes:', e);
-    return response({ error: e.message || 'Error al listar clientes' }, 500);
+  } catch (e: unknown) {
+    const error = e as any;
+    console.error('Error en /api/clientes:', {
+      message: error.message,
+      code: error.code,
+      timestamp: new Date().toISOString(),
+    });
+    return response({ error: error.message || 'Error al listar clientes' }, 500);
   }
 }
 
