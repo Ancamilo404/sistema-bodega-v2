@@ -22,7 +22,7 @@ export async function GET(req: Request) {
         },
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { creadoEn: 'desc' },
       }),
       prisma.venta.count(),
     ]);

@@ -61,7 +61,8 @@ export default function AliadosPage() {
     revalidateOnReconnect: true,
   });
 
-  const aliadosRaw: any[] = data && Array.isArray(data.data) ? data.data : [];
+  // ✅ Manejar estructura: data.data.items (no data.data)
+  const aliadosRaw: any[] = data && data.data && Array.isArray(data.data.items) ? data.data.items : [];
 
   // Mapeo y formateo
   const aliados = aliadosRaw.map(row => ({

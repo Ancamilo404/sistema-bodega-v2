@@ -78,7 +78,8 @@ export default function ProductosPage() {
         }
 
         const json = await res.json();
-        const productos: Producto[] = Array.isArray(json.data) ? json.data : [];
+        // ✅ Manejar estructura: json.data.items (no json.data)
+        const productos: Producto[] = Array.isArray(json.data?.items) ? json.data.items : (Array.isArray(json.data) ? json.data : []);
 
         const backendRows: Producto[] = productos.map((row: any) => ({
           ...row,

@@ -72,17 +72,17 @@ export default function VentaPage() {
   useEffect(() => {
     fetch('/api/productos')
       .then(res => res.json())
-      .then(json => setProductos(json.data || []));
+      .then(json => setProductos(json.data?.items || []));
 
     fetch('/api/clientes')
       .then(res => res.json())
-      .then(json => setClientes(json.data || []));
+      .then(json => setClientes(json.data?.items || []));
 
     // ✅ Obtener el número de orden actual
     fetch('/api/ventas')
       .then(res => res.json())
       .then(json => {
-        const totalVentas = Array.isArray(json.data) ? json.data.length : 0;
+        const totalVentas = json.data?.total ?? 0;
         setOrdenActual(totalVentas + 1);
       });
 

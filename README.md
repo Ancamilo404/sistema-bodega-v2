@@ -84,9 +84,11 @@ Credenciales de prueba:
 3. Configura variables de entorno (`.env`):
 
    ```env
-   DATABASE_URL="postgresql://user:password@host.supabase.com:6543/database?sslmode=require"
+   DATABASE_URL="postgresql://user:password@host.supabase.com:6543/database?sslmode=require&statement_cache_size=0"
    JWT_SECRET="tu-secreto-seguro-aqui"
    ```
+
+   **⚠️ IMPORTANTE**: Agregar `&statement_cache_size=0` al DATABASE_URL para evitar conflictos de prepared statements con el pooler de Supabase en conexiones simultáneas.
 
 4. Sincroniza la base de datos:
 

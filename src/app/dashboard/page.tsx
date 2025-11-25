@@ -29,7 +29,9 @@ export default function DashboardMenu() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const res = await fetch('/api/meta/dashboard', { credentials: 'include' });
+        // ⚠️ NO llamar /api/meta/dashboard - consume 4 conexiones con COUNT()
+        // Simplemente verificar auth con /api/auth/me
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (res.status === 403) {
           router.push('/noAutorizado');
           return;

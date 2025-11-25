@@ -1,23 +1,23 @@
-import { prisma } from "@/lib/prisma";
-import { response } from "@/lib/response";
-import { getAuthUser } from "@/lib/getAuthUser";
-import { logHistorial } from "@/lib/logHistorial";
-import { validateBody } from "@/lib/validateBody";
-import { aliadoSchema } from "@/schemas/aliado";
-import DOMPurify from "isomorphic-dompurify";
+import { prisma } from '@/lib/prisma';
+import { response } from '@/lib/response';
+import { getAuthUser } from '@/lib/getAuthUser';
+import { logHistorial } from '@/lib/logHistorial';
+import { validateBody } from '@/lib/validateBody';
+import { aliadoSchema } from '@/schemas/aliado';
+import DOMPurify from 'isomorphic-dompurify';
 
 // GET /api/aliados?search=...&estado=...&documento=...&fechaInicio=...&fechaFin=...&limit=50&offset=0
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    const search = searchParams.get("search") || "";
-    const estado = searchParams.get("estado")?.toUpperCase();
-    const documento = searchParams.get("documento") || "";
-    const fechaInicio = searchParams.get("fechaInicio");
-    const fechaFin = searchParams.get("fechaFin");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
-    const offset = Math.max(0, parseInt(searchParams.get("offset") || "0"));
+    const search = searchParams.get('search') || '';
+    const estado = searchParams.get('estado')?.toUpperCase();
+    const documento = searchParams.get('documento') || '';
+    const fechaInicio = searchParams.get('fechaInicio');
+    const fechaFin = searchParams.get('fechaFin');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
     // ✅ Usar findMany en lugar de raw queries para evitar prepared statement conflicts
     const where: any = {
@@ -51,40 +51,48 @@ export async function GET(req: Request) {
     }
 
     // ✅ Obtener total y lista con paginación (evita prepared statement conflicts)
-    const [aliados, total] = await Promise.all([
-      prisma.aliado.findMany({
-        where,
-        include: {
-          _count: {
-            select: { productos: { where: { deletedAt: null } } },
-          },
+    // ⚠️ OPTIMIZACIÓN: Si search está presente, NO hacer count (reduce conexiones en búsquedas)
+    let total = 0;
+    const aliados = await prisma.aliado.findMany({
+      where,
+      include: {
+        _count: {
+          select: { productos: { where: { deletedAt: null } } },
         },
-        skip: offset,
-        take: limit,
-        orderBy: { fechaRegistro: 'desc' },
-      }),
-      prisma.aliado.count({ where }),
-    ]);
+      },
+      skip: offset,
+      take: limit,
+      orderBy: { fechaRegistro: 'desc' },
+    });
+
+    // Count solo si NO hay búsqueda
+    if (!search) {
+      total = await prisma.aliado.count({ where });
+    } else {
+      total = offset + aliados.length;
+    }
 
     // ✅ Serializar fechas y agregar conteo de productos
-    const aliadosSerializados = aliados.map((a: any) => ({
-      ...a,
-      fechaRegistro: a.fechaRegistro?.toISOString() || null,
-      productos: a._count?.productos || 0,
-    })).map(({ _count, ...rest }: any) => rest);
+    const aliadosSerializados = aliados
+      .map((a: any) => ({
+        ...a,
+        fechaRegistro: a.fechaRegistro?.toISOString() || null,
+        productos: a._count?.productos || 0,
+      }))
+      .map(({ _count, ...rest }: any) => rest);
 
     return response({
       data: { items: aliadosSerializados, total, limit, offset },
-      message: "Aliados listados correctamente",
+      message: 'Aliados listados correctamente',
     });
   } catch (e: unknown) {
     const error = e as any;
-    console.error("Error en /api/aliados:", {
+    console.error('Error en /api/aliados:', {
       message: error.message,
       code: error.code,
       timestamp: new Date().toISOString(),
     });
-    return response({ error: error.message || "Error al listar aliados" }, 500);
+    return response({ error: error.message || 'Error al listar aliados' }, 500);
   }
 }
 
@@ -92,8 +100,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const user = await getAuthUser(req);
-    if (!user || !["ADMIN", "TRABAJADOR"].includes(user.rol)) {
-      return response({ error: "No autorizado" }, 403);
+    if (!user || !['ADMIN', 'TRABAJADOR'].includes(user.rol)) {
+      return response({ error: 'No autorizado' }, 403);
     }
 
     const body = await validateBody(req, aliadoSchema);
@@ -111,17 +119,17 @@ export async function POST(req: Request) {
     if (existing && existing.deletedAt) {
       result = await prisma.aliado.update({
         where: { id: existing.id },
-        data: { ...body, deletedAt: null, estado: "ACTIVO" },
+        data: { ...body, deletedAt: null, estado: 'ACTIVO' },
       });
 
       await logHistorial({
-        tipo: "ACTUALIZAR",
+        tipo: 'ACTUALIZAR',
         accion: `Aliado ${result.nombre} reactivado`,
-        entidad: "Aliado",
+        entidad: 'Aliado',
         entidadId: result.id,
         usuarioId: user.id,
         detalle: result,
-        ip: req.headers.get("x-forwarded-for") || undefined,
+        ip: req.headers.get('x-forwarded-for') || undefined,
       });
 
       return response(
@@ -130,26 +138,26 @@ export async function POST(req: Request) {
             ...result,
             fechaRegistro: result.fechaRegistro.toISOString(), // ✅ Serializar
           },
-          message: "Aliado reactivado correctamente",
+          message: 'Aliado reactivado correctamente',
         },
         200
       );
     }
 
     if (existing) {
-      return response({ error: "Documento ya registrado" }, 409);
+      return response({ error: 'Documento ya registrado' }, 409);
     }
 
     result = await prisma.aliado.create({ data: body });
 
     await logHistorial({
-      tipo: "CREAR",
+      tipo: 'CREAR',
       accion: `Aliado ${result.nombre} creado`,
-      entidad: "Aliado",
+      entidad: 'Aliado',
       entidadId: result.id,
       usuarioId: user.id,
       detalle: result,
-      ip: req.headers.get("x-forwarded-for") || undefined,
+      ip: req.headers.get('x-forwarded-for') || undefined,
     });
 
     return response(
@@ -158,12 +166,12 @@ export async function POST(req: Request) {
           ...result,
           fechaRegistro: result.fechaRegistro.toISOString(), // ✅ Serializar
         },
-        message: "Aliado creado correctamente",
+        message: 'Aliado creado correctamente',
       },
       201
     );
   } catch (e: any) {
-    if (e.code === "VALIDATION") return response({ error: e.error }, 400);
-    return response({ error: e.message || "Error al crear aliado" }, 500);
+    if (e.code === 'VALIDATION') return response({ error: e.error }, 400);
+    return response({ error: e.message || 'Error al crear aliado' }, 500);
   }
 }

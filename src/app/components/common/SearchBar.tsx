@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import toast from "react-hot-toast";
 
 interface SearchBarProps {
@@ -9,6 +9,7 @@ interface SearchBarProps {
   buttonText?: string;
   onResults: (data: any[]) => void;
   onClear?: () => void; // ✅ callback para reactivar polling
+  debounceMs?: number; // ✅ NUEVO: Debounce en milisegundos (default: 500ms)
 }
 
 export default function SearchBar({
@@ -17,9 +18,11 @@ export default function SearchBar({
   buttonText = "Buscar",
   onResults,
   onClear,
+  debounceMs = 500, // ✅ NUEVO: 500ms debounce por defecto
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const debounceTimer = useRef<NodeJS.Timeout>();
 
   const endpoints: Record<SearchBarProps["module"], string> = {
     clientes: "/api/clientes",
@@ -30,24 +33,25 @@ export default function SearchBar({
     historial: "/api/historial",
   };
 
-  const handleSearch = async () => {
+  const handleSearch = async (searchQuery: string = query) => {
     // ⛔ Si está vacío o solo espacios, no hacer nada
-    if (!query.trim()) {
-      return; // el polling sigue activo, no se limpia nada
+    if (!searchQuery.trim()) {
+      return;
     }
 
     setLoading(true);
     try {
-      const res = await fetch(`${endpoints[module]}?search=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(`${endpoints[module]}?search=${encodeURIComponent(searchQuery.trim())}`);
       const json = await res.json();
 
       if (!res.ok) {
         toast.error(json.error || "Error en búsqueda");
-        return; // ⛔ corta aquí si el backend devuelve error
+        return;
       }
 
-      // ✅ Si todo va bien, actualiza resultados
-      onResults(json.data || []);
+      // ✅ Manejar estructura: json.data.items (o json.data si es array directo)
+      const items = Array.isArray(json.data) ? json.data : (json.data?.items || []);
+      onResults(items);
     } catch (err) {
       console.error("Error en búsqueda:", err);
       toast.error("Error de conexión");
@@ -58,6 +62,10 @@ export default function SearchBar({
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
+      // ✅ Cancelar debounce anterior y hacer búsqueda inmediata
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
       handleSearch();
     }
   };
@@ -71,18 +79,29 @@ export default function SearchBar({
           const value = e.target.value;
           setQuery(value);
 
-          // 🔹 Si el input queda vacío, limpia resultados y reactiva polling
+          // ✅ NUEVO: Cancelar debounce anterior si existe
+          if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+          }
+
+          // 🔹 Si el input queda vacío, limpia resultados y reactiva polling INMEDIATAMENTE
           if (value.trim() === "") {
             onResults([]);
             if (onClear) onClear();
+            return;
           }
+
+          // ✅ NUEVO: Configurar nuevo debounce para evitar searches frecuentes
+          debounceTimer.current = setTimeout(() => {
+            handleSearch(value);
+          }, debounceMs);
         }}
         onKeyPress={handleKeyPress}
         placeholder={placeholder || `Buscar ${module}...`}
         className="input-search"
         disabled={loading}
       />
-      <button onClick={handleSearch} className="btn-search" disabled={loading}>
+      <button onClick={() => handleSearch()} className="btn-search" disabled={loading}>
         {loading ? <span className="spinner-inline">⏳ Buscando...</span> : buttonText}
       </button>
     </div>

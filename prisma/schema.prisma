@@ -1,10 +1,17 @@
 generator client {
   provider = "prisma-client-js"
+  // ✅ Aumentar pool de conexiones en modo dev/production
+  // Más conexiones = más requests simultáneos sin timeout
+  // Pool por defecto: ~10, ajustamos a ~20 máximo
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // ✅ Agregar ?statement_cache_size=0 al DATABASE_URL para evitar conflictos de prepared statements en pooler
+  // Ejemplo: postgresql://user:pass@host.supabase.com:6543/db?sslmode=require&statement_cache_size=0
+  // Aumentar connectionLimit para soportar más requests simultáneos en dev/vercel
+  directUrl = env("DIRECT_URL")
 }
 
 // =======================

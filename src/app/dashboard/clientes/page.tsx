@@ -43,7 +43,8 @@ export default function ClientesPage() {
   return <div style={{color:'red',padding:'1rem'}}>Error: {error.message || JSON.stringify(error)}</div>;
 }
 
-  const clientesRaw = !data || !data.data ? [] : data.data;
+  // ✅ Manejar estructura correcta: data.data.items (no data.data)
+  const clientesRaw = !data || !data.data || !Array.isArray(data.data.items) ? [] : data.data.items;
 
   const clientes = clientesRaw.map(row => ({
     ...row,

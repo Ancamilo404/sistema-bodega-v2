@@ -46,27 +46,35 @@ export async function GET(req: Request) {
     }
 
     // ✅ Obtener total y lista con paginación
-    const [clientes, total] = await Promise.all([
-      prisma.cliente.findMany({
-        where,
-        include: {
-          _count: {
-            select: { ventas: { where: { estado: 'CONFIRMADA' } } },
-          },
+    // ⚠️ OPTIMIZACIÓN: Si search está presente, NO hacer count (reduce conexiones en búsquedas)
+    let total = 0;
+    const clientes = await prisma.cliente.findMany({
+      where,
+      include: {
+        _count: {
+          select: { ventas: { where: { estado: 'CONFIRMADA' } } },
         },
-        skip: offset,
-        take: limit,
-        orderBy: { fechaRegistro: 'desc' },
-      }),
-      prisma.cliente.count({ where }),
-    ]);
+      },
+      skip: offset,
+      take: limit,
+      orderBy: { fechaRegistro: 'desc' },
+    });
+
+    // Count solo si NO hay búsqueda
+    if (!search) {
+      total = await prisma.cliente.count({ where });
+    } else {
+      total = offset + clientes.length;
+    }
 
     // ✅ Serializar fechas y agregar conteo
-    const clientesSerializados = clientes.map((c: any) => ({
-      ...c,
-      fechaRegistro: c.fechaRegistro?.toISOString() || null,
-      ventas: c._count?.ventas || 0,
-    })).map(({ _count, ...rest }: any) => rest);
+    const clientesSerializados = clientes
+      .map((c: any) => ({
+        ...c,
+        fechaRegistro: c.fechaRegistro?.toISOString() || null,
+        ventas: c._count?.ventas || 0,
+      }))
+      .map(({ _count, ...rest }: any) => rest);
 
     return response({
       data: { items: clientesSerializados, total, limit, offset },

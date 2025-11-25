@@ -69,9 +69,10 @@ export default function UsuariosPage() {
 
   // 🟩 Merge inteligente
   useEffect(() => {
-    if (!fetched || !Array.isArray(fetched.data)) return;
+    // ✅ Manejar estructura: fetched.data.items (no fetched.data)
+    if (!fetched || !fetched.data || !Array.isArray(fetched.data.items)) return;
 
-    const backendRows: Usuario[] = fetched.data.map((row: any) => ({
+    const backendRows: Usuario[] = fetched.data.items.map((row: any) => ({
       ...row,
       fechaRegistro: row.fechaRegistro
         ? formatDateTime(row.fechaRegistro)

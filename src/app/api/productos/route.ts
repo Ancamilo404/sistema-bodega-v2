@@ -24,14 +24,15 @@ export async function GET(req: Request) {
       deletedAt: null,
     };
 
-    // Búsqueda en múltiples campos
+    // Búsqueda en múltiples campos (sin id porque es numérico)
     if (search) {
       where.OR = [
         { nombre: { contains: search, mode: 'insensitive' } },
         { descripcion: { contains: search, mode: 'insensitive' } },
         { categoria: { contains: search, mode: 'insensitive' } },
         { unidad: { contains: search, mode: 'insensitive' } },
-        { id: { contains: search, mode: 'insensitive' } },
+        // ⚠️ NO usar contains en 'id' porque es numérico, usar equals
+        ...(Number.isInteger(parseInt(search)) ? [{ id: parseInt(search) }] : []),
       ];
     }
 
@@ -54,20 +55,26 @@ export async function GET(req: Request) {
     }
 
     // ✅ Obtener total y lista con paginación (evita prepared statement conflicts)
-    const [productos, total] = await Promise.all([
-      prisma.producto.findMany({
-        where,
-        include: {
-          aliado: {
-            select: { id: true, nombre: true, documento: true },
-          },
+    // ⚠️ OPTIMIZACIÓN: Si search está presente, NO hacer count (reduce conexiones en búsquedas)
+    let total = 0;
+    const productos = await prisma.producto.findMany({
+      where,
+      include: {
+        aliado: {
+          select: { id: true, nombre: true, documento: true },
         },
-        skip: offset,
-        take: limit,
-        orderBy: { creadoEn: 'desc' },
-      }),
-      prisma.producto.count({ where }),
-    ]);
+      },
+      skip: offset,
+      take: limit,
+      orderBy: { creadoEn: 'desc' },
+    });
+
+    // Count solo si NO hay búsqueda
+    if (!search) {
+      total = await prisma.producto.count({ where });
+    } else {
+      total = offset + productos.length;
+    }
 
     // ✅ Serializar fechas
     const productosSerializados = productos.map((p: any) => ({

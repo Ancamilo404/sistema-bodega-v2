@@ -12,11 +12,30 @@ export function useProductos(aliadoId: number | null, pageSize: number = 20) {
     try {
       const res = await fetch(`/api/aliados/${aliadoId}/productos?page=${pageNum}&limit=${pageSize}`);
       const json = await res.json();
+      
+      // ✅ Validar respuesta HTTP
+      if (!res.ok) {
+        console.error("Error HTTP:", res.status, json);
+        setItems(pageNum === 1 ? [] : prev => prev);
+        setTotal(0);
+        return;
+      }
+      
+      // ✅ Manejar respuesta nula o estructura incorrecta
+      if (!json.data || !json.data.items) {
+        console.error("Respuesta inválida del servidor:", json);
+        setItems(pageNum === 1 ? [] : prev => prev);
+        setTotal(0);
+        return;
+      }
+      
       setItems(prev => pageNum === 1 ? json.data.items : [...prev, ...json.data.items]);
       setTotal(json.data.total);
       setPage(pageNum);
     } catch (err) {
       console.error("Error cargando productos:", err);
+      setItems(pageNum === 1 ? [] : prev => prev);
+      setTotal(0);
     } finally {
       setLoading(false);
     }

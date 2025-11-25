@@ -129,7 +129,8 @@ export default function HistorialPage() {
     revalidateIfStale: false, // ✅ No revalidar si ya tiene datos
   });
 
-  const usuarios = usuariosData?.data || [];
+  // ✅ Manejar estructura: usuariosData.data.items (no usuariosData.data)
+  const usuarios = (usuariosData?.data?.items && Array.isArray(usuariosData.data.items)) ? usuariosData.data.items : [];
   const historial: HistorialItem[] = data?.data?.items || [];
   const total = data?.data?.total || 0;
 
@@ -216,10 +217,12 @@ export default function HistorialPage() {
     toast.success('Historial exportado correctamente');
   }, [rows]);
 
-  // ✅ Mostrar errores
-  if (error) {
-    toast.error('Error al cargar historial');
-  }
+  // ✅ Mostrar errores en useEffect (NO en el render)
+  React.useEffect(() => {
+    if (error) {
+      toast.error('Error al cargar historial');
+    }
+  }, [error]);
 
   const historialInfo = selectedData && (
     <div className="sidebar-info">

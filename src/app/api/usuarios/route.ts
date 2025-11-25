@@ -52,26 +52,32 @@ export async function GET(req: Request) {
     }
 
     // ✅ Obtener total y lista con paginación
-    const [usuarios, total] = await Promise.all([
-      prisma.usuario.findMany({
-        where,
-        skip: offset,
-        take: limit,
-        orderBy: { fechaRegistro: 'desc' },
-        select: {
-          id: true,
-          nombre: true,
-          correo: true,
-          documento: true,
-          telefono: true,
-          tipoId: true,
-          rol: true,
-          estado: true,
-          fechaRegistro: true,
-        },
-      }),
-      prisma.usuario.count({ where }),
-    ]);
+    // ⚠️ OPTIMIZACIÓN: Si search está presente, NO hacer count (reduce conexiones en búsquedas)
+    let total = 0;
+    const usuarios = await prisma.usuario.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      orderBy: { fechaRegistro: 'desc' },
+      select: {
+        id: true,
+        nombre: true,
+        correo: true,
+        documento: true,
+        telefono: true,
+        tipoId: true,
+        rol: true,
+        estado: true,
+        fechaRegistro: true,
+      },
+    });
+
+    // Count solo si NO hay búsqueda
+    if (!search) {
+      total = await prisma.usuario.count({ where });
+    } else {
+      total = offset + usuarios.length;
+    }
 
     // ✅ Serializar fechas
     const usuariosSerializados = usuarios.map((u: any) => ({
@@ -98,7 +104,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const user = await getAuthUser(req);   // ✅ ahora sí espera el resultado
+    const user = await getAuthUser(req); // ✅ ahora sí espera el resultado
     if (!user || user.rol !== 'ADMIN') {
       return response({ error: 'No autorizado' }, 403);
     }
