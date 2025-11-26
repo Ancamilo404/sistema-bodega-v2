@@ -112,7 +112,7 @@ export default function LoginPage() {
             <div className="terms terms-login">
               <label>
                 Se te ha olvidado la{" "}
-                <a href="/recuperarContraseña" target="_blank">
+                <a href="./noContruido">
                   Contraseña??
                 </a>
               </label>

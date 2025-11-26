@@ -184,7 +184,7 @@ export default function RegisterPage() {
               <input type="checkbox" id="terms" required />
               <label htmlFor="terms">
                 Acepto los{' '}
-                <a href="/terminos.pdf" target="_blank">
+                <a href="./noContruido">
                   Términos y condiciones
                 </a>
               </label>

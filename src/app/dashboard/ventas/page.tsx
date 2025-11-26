@@ -510,8 +510,8 @@ doc.text(`Observaciones: ${observaciones || 'N/A'}`, 10, y + 50);
         columns={columns}
         data={items.map(item => ({
           ...item,
-          precioUnitario: `$${item.precioUnitario.toFixed(2)}`,
-          subtotal: `$${item.subtotal.toFixed(2)}`,
+          precioUnitario: `$${(Number(item.precioUnitario) || 0).toFixed(2)}`,
+          subtotal: `$${(Number(item.subtotal) || 0).toFixed(2)}`,
         }))}
         selectedId={selectedItemId}
         onRowClick={row => {

@@ -153,7 +153,7 @@ export default function DashboardMenu() {
       <div className="footer">
         <div className="footer-content">
           <div className="footer-left">
-            <button className="boton tienda">
+            <button className="boton tienda" onClick={() => router.push('../../noContruido')}>
               <MdStoreMallDirectory size={24} />
               <span>Tienda</span>
             </button>
@@ -172,7 +172,7 @@ export default function DashboardMenu() {
           </div>
 
           <div className="footer-right">
-            <div className="logo-container2">
+            <div className="logo-container2" onClick={() => router.push('../../noContruido')}>
               <img src="/logoo.png" alt="Logo Grupo Monterrey" className="logo-img" />
             </div>
           </div>

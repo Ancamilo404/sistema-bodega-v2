@@ -34,7 +34,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash("123456", 10);
 await prisma.usuario.createMany({
   data: [
-    { nombre: "Camila Admin", tipoId: "CC", documento: "1001", password: hashedPassword, correo: "admin@mail.com", rol: "ADMIN", estado: "ACTIVO" },
+    { nombre: "Camila Admin", tipoId: "CC", documento: "1001", password: hashedPassword, correo: "admin@gmail.com", rol: "ADMIN", estado: "ACTIVO" },
     { nombre: "Pedro Trabajador", tipoId: "CC", documento: "1002", correo: "pedro@mail.com", rol: "TRABAJADOR", estado: "ACTIVO" },
     { nombre: "Laura Vendedora", tipoId: "CC", documento: "1003", correo: "laura@mail.com", rol: "TRABAJADOR", estado: "BLOQUEADO" },
     { nombre: "Cliente Usuario", tipoId: "CC", documento: "1004", correo: "cliente@mail.com", rol: "USUARIO", estado: "ACTIVO" }
