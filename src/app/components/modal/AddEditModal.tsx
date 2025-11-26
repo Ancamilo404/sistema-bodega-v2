@@ -23,20 +23,24 @@ export default function AddEditModal({
 
   // Estado del formulario
   const [formData, setFormData] = useState(
-    schema.reduce((acc, field) => {
-      // ⚡ Password siempre inicia vacío en edición
-      if (field.name === 'password') {
-        acc[field.name] = '';
-      } else if (initialData?.[field.name] !== undefined && initialData?.[field.name] !== null) {
-        // ⚡ Si es numérico, convertir a string para que el input number lo muestre
-        acc[field.name] = field.type === 'number'
-          ? String(initialData[field.name])
-          : String(initialData[field.name]);
-      } else {
-        acc[field.name] = '';
-      }
-      return acc;
-    }, {} as Record<string, any>)
+    schema.reduce(
+      (acc, field) => {
+        // ⚡ Password siempre inicia vacío en edición
+        if (field.name === 'password') {
+          acc[field.name] = '';
+        } else if (initialData?.[field.name] !== undefined && initialData?.[field.name] !== null) {
+          // ⚡ Si es numérico, convertir a string para que el input number lo muestre
+          acc[field.name] =
+            field.type === 'number'
+              ? String(initialData[field.name])
+              : String(initialData[field.name]);
+        } else {
+          acc[field.name] = '';
+        }
+        return acc;
+      },
+      {} as Record<string, any>
+    )
   );
 
   const [showPassword, setShowPassword] = useState(false);
@@ -55,13 +59,25 @@ export default function AddEditModal({
         try {
           const res = await fetch(field.endpoint);
           const json = await res.json();
+          // ✅ Asegurar que siempre sea un array
+          let options = [];
+          if (Array.isArray(json.data?.items)) {
+            options = json.data.items;
+          } else if (Array.isArray(json.data)) {
+            options = json.data;
+          }
           setAsyncOptions(prev => ({
             ...prev,
-            [field.name]: json.data || [],
+            [field.name]: options,
           }));
         } catch (error) {
           console.error(`Error cargando opciones para ${field.name}:`, error);
           toast.error(`Error al cargar ${field.label}`);
+          // ✅ Inicializar como array vacío si hay error
+          setAsyncOptions(prev => ({
+            ...prev,
+            [field.name]: [],
+          }));
         } finally {
           setLoadingOptions(prev => ({ ...prev, [field.name]: false }));
         }

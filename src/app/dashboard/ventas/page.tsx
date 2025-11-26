@@ -186,7 +186,7 @@ export default function VentaPage() {
           items: items.map(i => ({
             productoId: i.productoId,
             cantidad: i.cantidad,
-            precioUnitario: i.precioUnitario,
+            precioUnitario: Number(i.precioUnitario) || 0,
             descuento: 0,
             iva: 0,
           })),
@@ -289,7 +289,7 @@ TOTAL: $${totalAPagar.toFixed(2)}
     doc.text(`Impuesto (${impuestoGlobal}%): $${impuesto.toFixed(2)}`, 10, y + 30);
     doc.text(`TOTAL: $${totalAPagar.toFixed(2)}`, 10, y + 40);
 
-doc.text(`Observaciones: ${observaciones || 'N/A'}`, 10, y + 50);
+    doc.text(`Observaciones: ${observaciones || 'N/A'}`, 10, y + 50);
 
     doc.save(`factura-${ordenActual}.pdf`);
   };
