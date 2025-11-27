@@ -4,7 +4,6 @@ import { getAuthUser } from '@/lib/getAuthUser';
 import { logHistorial } from '@/lib/logHistorial';
 import { validateBody } from '@/lib/validateBody';
 import { clienteSchema } from '@/schemas/cliente';
-import DOMPurify from 'isomorphic-dompurify';
 
 // GET /api/clientes?search=...&estado=...&documento=...&fechaInicio=...&fechaFin=...&limit=50&offset=0
 export async function GET(req: Request) {
@@ -98,7 +97,7 @@ export async function POST(req: Request) {
 
     const body = await validateBody(req, clienteSchema);
     if (body.documento) {
-      body.documento = DOMPurify.sanitize(body.documento.trim());
+      body.documento = body.documento.trim();
     }
     if (body.telefono) body.telefono = body.telefono.trim();
 

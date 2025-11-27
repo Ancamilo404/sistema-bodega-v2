@@ -5,7 +5,6 @@ import { logHistorial } from '@/lib/logHistorial';
 import { validateBody } from '@/lib/validateBody';
 import { usuarioSchema } from '@/schemas/usuario';
 import bcrypt from 'bcrypt';
-import DOMPurify from 'isomorphic-dompurify';
 
 // GET /api/usuarios?search=...&estado=...&correo=...&documento=...&fechaInicio=...&fechaFin=...&limit=50&offset=0
 export async function GET(req: Request) {
@@ -105,9 +104,9 @@ export async function POST(req: Request) {
 
     const body = await validateBody(req, usuarioSchema);
     // Sanitizar campos
-    if (body.documento) body.documento = DOMPurify.sanitize(body.documento.trim());
+    if (body.documento) body.documento = body.documento.trim();
     if (body.telefono) body.telefono = body.telefono.trim();
-    if (body.correo) body.correo = DOMPurify.sanitize(body.correo.trim());
+    if (body.correo) body.correo = body.correo.trim();
 
     const hashedPassword = body.password ? await bcrypt.hash(body.password, 10) : undefined;
 
