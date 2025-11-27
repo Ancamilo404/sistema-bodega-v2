@@ -5,7 +5,6 @@ import { getAuthUser } from '@/lib/getAuthUser';
 import { logHistorial } from '@/lib/logHistorial';
 import { validateBody } from '@/lib/validateBody';
 import { clienteUpdateSchema } from '@/schemas/clienteUpdate';
-import DOMPurify from 'isomorphic-dompurify';
 
 // GET /api/clientes/:id
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -32,7 +31,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     const body = await validateBody(req, clienteUpdateSchema);
     if (body.documento) {
-      body.documento = DOMPurify.sanitize(body.documento.trim());
+      body.documento = body.documento.trim();
     }
     if (body.telefono) body.telefono = body.telefono.trim();
 
