@@ -164,7 +164,6 @@ export default function HistorialPage() {
       { key: 'usuario', label: 'Usuario', width: '150px' },
       { key: 'entidad', label: 'Entidad', width: '120px' },
       { key: 'accion', label: 'Acción', width: '300px' },
-      { key: 'ip', label: 'IP', width: '100px' },
     ],
     []
   );
@@ -192,7 +191,7 @@ export default function HistorialPage() {
 
   // ✅ Exportar CSV
   const exportarCSV = useCallback(() => {
-    const headers = ['ID', 'Fecha', 'Tipo', 'Usuario', 'Entidad', 'Acción', 'IP'];
+    const headers = ['ID', 'Fecha', 'Tipo', 'Usuario', 'Entidad', 'Acción'];
     const csvRows = rows.map(item => [
       item.id,
       item.fecha,
@@ -200,7 +199,6 @@ export default function HistorialPage() {
       item.usuario?.nombre || 'N/A',
       item.entidad || 'N/A',
       item.accion,
-      item.ip || 'N/A',
     ]);
 
     const csv = [
