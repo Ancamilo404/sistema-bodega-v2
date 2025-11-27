@@ -55,11 +55,6 @@ export async function GET(req: Request) {
     let total = 0;
     const aliados = await prisma.aliado.findMany({
       where,
-      include: {
-        _count: {
-          select: { productos: { where: { deletedAt: null } } },
-        },
-      },
       skip: offset,
       take: limit,
       orderBy: { fechaRegistro: 'desc' },
@@ -72,14 +67,11 @@ export async function GET(req: Request) {
       total = offset + aliados.length;
     }
 
-    // ✅ Serializar fechas y agregar conteo de productos
-    const aliadosSerializados = aliados
-      .map((a: any) => ({
-        ...a,
-        fechaRegistro: a.fechaRegistro?.toISOString() || null,
-        productos: a._count?.productos || 0,
-      }))
-      .map(({ _count, ...rest }: any) => rest);
+    // ✅ Serializar fechas
+    const aliadosSerializados = aliados.map((a: any) => ({
+      ...a,
+      fechaRegistro: a.fechaRegistro?.toISOString() || null,
+    }));
 
     return response({
       data: { items: aliadosSerializados, total, limit, offset },

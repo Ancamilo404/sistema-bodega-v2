@@ -50,11 +50,6 @@ export async function GET(req: Request) {
     let total = 0;
     const clientes = await prisma.cliente.findMany({
       where,
-      include: {
-        _count: {
-          select: { ventas: { where: { estado: 'CONFIRMADA' } } },
-        },
-      },
       skip: offset,
       take: limit,
       orderBy: { fechaRegistro: 'desc' },
@@ -67,14 +62,11 @@ export async function GET(req: Request) {
       total = offset + clientes.length;
     }
 
-    // ✅ Serializar fechas y agregar conteo
-    const clientesSerializados = clientes
-      .map((c: any) => ({
-        ...c,
-        fechaRegistro: c.fechaRegistro?.toISOString() || null,
-        ventas: c._count?.ventas || 0,
-      }))
-      .map(({ _count, ...rest }: any) => rest);
+    // ✅ Serializar fechas
+    const clientesSerializados = clientes.map((c: any) => ({
+      ...c,
+      fechaRegistro: c.fechaRegistro?.toISOString() || null,
+    }));
 
     return response({
       data: { items: clientesSerializados, total, limit, offset },
