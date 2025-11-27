@@ -84,9 +84,10 @@ export async function GET(req: Request) {
     });
   } catch (e: unknown) {
     const error = e as any;
-    console.error('Error en /api/usuarios:', {
+    console.error('Error crítico en /api/usuarios GET:', {
       message: error.message,
       code: error.code,
+      stack: error.stack,
       timestamp: new Date().toISOString(),
     });
     return response({ error: e.message || 'Error al listar usuarios' }, 500);

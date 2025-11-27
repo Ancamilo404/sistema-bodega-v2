@@ -79,9 +79,10 @@ export async function GET(req: Request) {
     });
   } catch (e: unknown) {
     const error = e as any;
-    console.error('Error en /api/aliados:', {
+    console.error('Error crítico en /api/aliados GET:', {
       message: error.message,
       code: error.code,
+      stack: error.stack,
       timestamp: new Date().toISOString(),
     });
     return response({ error: error.message || 'Error al listar aliados' }, 500);
