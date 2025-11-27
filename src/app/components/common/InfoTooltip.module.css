@@ -1,0 +1,234 @@
+/* BOTÓN */
+.infoButton {
+  background: none;
+  border: none;
+  color: #ddd;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+/* ANIMACIÓN */
+@keyframes slideInModal {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* OVERLAY */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  animation: fadeInBackdrop 0.3s ease-out;
+}
+
+/* MODAL */
+.modalContainer {
+  background: #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid #ddd;
+  scrollbar-width: none;
+  scrollbar-color: none;
+  animation: slideInModal 0.35s ease-out;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 12px;
+}
+
+.modalHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+  font-weight: 600;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: #333;
+}
+
+/* CONTENIDO */
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.section {
+  margin: 0;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* CREADORES */
+.creatorsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.creatorCard {
+  padding: 12px;
+  background: #ddd;
+  border-radius: 6px;
+  border-left: 3px solid #555;
+  transition: all 0.2s;
+}
+
+.creatorCard:hover {
+  background: #d1d5db;
+}
+
+.creatorCard p {
+  margin: 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.creatorCard p:first-child {
+  font-weight: 600;
+}
+
+.creatorCard p:last-child {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+/* UBICACIÓN */
+.locationBox {
+  padding: 12px;
+  background: #ddd;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #333;
+  border-left: 3px solid #999;
+}
+
+/* EMAILS */
+.emailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.emailLink {
+  padding: 10px 12px;
+  background: #ddd;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #333;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.emailLink:hover {
+  background: #ccc;
+  border-color: #999;
+}
+
+/* REDES SOCIALES */
+.linkedinLink,
+.githubLink {
+  padding: 10px 12px;
+  background: #ddd;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+  margin: 8px 0; 
+  color: #333;
+}
+
+.linkedinLink:hover,
+.githubLink:hover {
+  background: #ccc;
+  border-color: #999;
+}
+
+/* FILOSOFÍA */
+.philosophyBox {
+  padding: 12px;
+  background: #ddd;
+  border-radius: 6px;
+  border-left: 3px solid #999;
+}
+
+.philosophyBox p {
+  margin: 0;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.philosophyBox p + p {
+  margin-top: 8px;
+}

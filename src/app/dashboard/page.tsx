@@ -24,6 +24,7 @@ export default function DashboardMenu() {
   const [loading, setLoading] = useState(true);
   const [fechaHora, setFechaHora] = useState(new Date());
   const [showPerfil, setShowPerfil] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
@@ -161,15 +162,16 @@ export default function DashboardMenu() {
 
           <div className="tooltip">
             <div className="footer-center">
-              <button className="boton-letra info">
+              <button className="boton-letra info" onClick={() => setShowInfo(true)}>
                 <Terminal size={24} />
                 <span>Informacion</span>
               </button>
-              <div className="tooltip-text">
-                <InfoTooltip />
-              </div>
+              <div className="tooltip-text">{/* Tooltip vacío para mantener el estilo */}</div>
             </div>
           </div>
+
+          {/* Modal de Información - Fuera del tooltip para que sea visible */}
+          <InfoTooltip isOpen={showInfo} onToggle={setShowInfo} />
 
           <div className="footer-right">
             <div className="logo-container2" onClick={() => router.push('../../noContruido')}>
@@ -184,7 +186,7 @@ export default function DashboardMenu() {
         <PerfilModal
           user={userData}
           onClose={() => setShowPerfil(false)}
-          onSuccess={(updated) => {
+          onSuccess={updated => {
             setUserData(updated);
             setShowPerfil(false);
           }}
