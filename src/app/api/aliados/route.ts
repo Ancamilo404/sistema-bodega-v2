@@ -58,6 +58,11 @@ export async function GET(req: Request) {
       skip: offset,
       take: limit,
       orderBy: { fechaRegistro: 'desc' },
+      include: {
+        _count: {
+          select: { productos: true },
+        },
+      },
     });
 
     // Count solo si NO hay búsqueda
@@ -67,9 +72,10 @@ export async function GET(req: Request) {
       total = offset + aliados.length;
     }
 
-    // ✅ Serializar fechas
+    // ✅ Serializar fechas y transformar _count
     const aliadosSerializados = aliados.map((a: any) => ({
       ...a,
+      productos: a._count?.productos ?? 0,
       fechaRegistro: a.fechaRegistro?.toISOString() || null,
     }));
 

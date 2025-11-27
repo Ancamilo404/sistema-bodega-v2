@@ -57,6 +57,11 @@ export async function GET(req: Request) {
       skip: offset,
       take: limit,
       orderBy: { fechaRegistro: 'desc' },
+      include: {
+        _count: {
+          select: { ventas: true },
+        },
+      },
     });
 
     // Count solo si NO hay búsqueda
@@ -66,9 +71,10 @@ export async function GET(req: Request) {
       total = offset + clientes.length;
     }
 
-    // ✅ Serializar fechas
+    // ✅ Serializar fechas y transformar _count
     const clientesSerializados = clientes.map((c: any) => ({
       ...c,
+      ventas: c._count?.ventas ?? 0,
       fechaRegistro: c.fechaRegistro?.toISOString() || null,
     }));
 
