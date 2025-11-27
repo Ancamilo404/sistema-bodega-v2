@@ -21,16 +21,20 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
-    // ✅ Usar findMany en lugar de raw queries
+    // ✅ Construir where dinámicamente
     const where: any = {
       deletedAt: null,
-      OR: [
+    };
+
+    // Solo agregar OR si hay búsqueda
+    if (search) {
+      where.OR = [
         { nombre: { contains: search, mode: 'insensitive' } },
         { correo: { contains: search, mode: 'insensitive' } },
         { documento: { contains: search, mode: 'insensitive' } },
         { telefono: { contains: search, mode: 'insensitive' } },
-      ],
-    };
+      ];
+    }
 
     if (estado && ['ACTIVO', 'BLOQUEADO'].includes(estado)) {
       where.estado = estado;
@@ -59,17 +63,6 @@ export async function GET(req: Request) {
       skip: offset,
       take: limit,
       orderBy: { fechaRegistro: 'desc' },
-      select: {
-        id: true,
-        nombre: true,
-        correo: true,
-        documento: true,
-        telefono: true,
-        tipoId: true,
-        rol: true,
-        estado: true,
-        fechaRegistro: true,
-      },
     });
 
     // Count solo si NO hay búsqueda
@@ -79,10 +72,11 @@ export async function GET(req: Request) {
       total = offset + usuarios.length;
     }
 
-    // ✅ Serializar fechas
+    // ✅ Serializar fechas y remover contraseña
     const usuariosSerializados = usuarios.map((u: any) => ({
       ...u,
       fechaRegistro: u.fechaRegistro?.toISOString() || null,
+      password: undefined, // ← No devolver contraseña
     }));
 
     return response({

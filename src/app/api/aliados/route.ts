@@ -39,7 +39,8 @@ export async function GET(req: Request) {
       where.estado = estado;
     }
 
-    if (documento) {
+    if (documento && documento.trim()) {
+      // ← Validar que NO esté vacío
       where.documento = documento;
     }
 

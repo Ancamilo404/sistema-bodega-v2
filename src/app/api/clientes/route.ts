@@ -19,22 +19,27 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'));
 
-    // ✅ Usar findMany en lugar de raw queries para evitar prepared statement conflicts
+    // ✅ Construir where dinámicamente
     const where: any = {
       deletedAt: null,
-      OR: [
+    };
+
+    // Solo agregar OR si hay búsqueda
+    if (search) {
+      where.OR = [
         { nombre: { contains: search, mode: 'insensitive' } },
         { documento: { contains: search, mode: 'insensitive' } },
         { direccion: { contains: search, mode: 'insensitive' } },
         { telefono: { contains: search, mode: 'insensitive' } },
-      ],
-    };
+      ];
+    }
 
     if (estado && ['ACTIVO', 'BLOQUEADO'].includes(estado)) {
       where.estado = estado;
     }
 
-    if (documento) {
+    if (documento && documento.trim()) {
+      // ← Validar que NO esté vacío
       where.documento = documento;
     }
 
