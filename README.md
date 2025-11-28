@@ -1,4 +1,4 @@
-# 📦 Sistema de Bodega - APP-BETA-5
+# 📦 Sistema de Bodega - APP-BETA-5 
 
 Un sistema profesional de gestión de inventario, ventas y clientes con autenticación por roles, auditoría, reportes analíticos interactivo.
 
@@ -56,7 +56,7 @@ Un sistema profesional de gestión de inventario, ventas y clientes con autentic
 ### 1️⃣ Clonar el repositorio
 
 ```bash
-git clone https://github.com/Ancamilo404/sistema-bodega-v2
+git clone https://github.com/Ancamilo404/sistema-bodega-v2  mian portegida
 cd app-beta-5
 ```
 
