@@ -53,10 +53,10 @@ Un sistema profesional de gestión de inventario, ventas y clientes con autentic
 
 ## 📋 Instalación y Configuración
 
-### 1️⃣ Clonar el repositorio
+### 1️⃣ Clonar el repositorio 
 
 ```bash
-git clone https://github.com/Ancamilo404/sistema-bodega-v2  mian portegida
+git clone https://github.com/Ancamilo404/sistema-bodega-v2  FrancoRepo
 cd app-beta-5
 ```
 
@@ -398,5 +398,6 @@ Gracias a las comunidades de Next.js, Prisma y Neon por sus excelentes herramien
 ---
 
 **Versión**: 1.0.0 (Producción)
-#   T e s t   p r o t e c c i � n   r e a l  
+#   T e s t   p r o t e c c i � n   r e a l 
+ 
  
