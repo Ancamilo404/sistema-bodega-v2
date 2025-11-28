@@ -68,7 +68,7 @@ npm install
 
 ### 3️⃣ Configurar variables de entorno
 
-Crea un archivo `.env.local` en la raíz del proyecto:
+Copia el archivo `.env.example` a `.env`:
 
 ```env
 # Base de datos Neon
@@ -102,7 +102,7 @@ npm run build
 npm run start
 ```
 
-Abre [http://localhost:3001](http://localhost:3001) en tu navegador.
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
 ---
 
@@ -398,5 +398,6 @@ Gracias a las comunidades de Next.js, Prisma y Neon por sus excelentes herramien
 ---
 
 **Versión**: 1.0.0 (Producción)
-#   T e s t   p r o t e c c i � n   r e a l  
+#   T e s t   p r o t e c c i � n   r e a l 
+ 
  
