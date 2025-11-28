@@ -56,7 +56,7 @@ Un sistema profesional de gestión de inventario, ventas y clientes con autentic
 ### 1️⃣ Clonar el repositorio
 
 ```bash
-git clone https://github.com/Ancamilo404/sistema-bodega-v2  mian portegida
+git clone https://github.com/Ancamilo404/sistema-bodega-v2  mian portegida.
 cd app-beta-5
 ```
 
